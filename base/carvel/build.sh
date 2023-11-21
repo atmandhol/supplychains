@@ -2,5 +2,5 @@
 ./download.sh
 
 docker build -t carvel-base .
-docker tag carvel-base us-east4-docker.pkg.dev/adhol-playground/image-base/carvel-base
-docker push us-east4-docker.pkg.dev/adhol-playground/image-base/carvel-base
+docker tag carvel-base $REGISTRY_REPO/carvel-base
+docker push $REGISTRY_REPO/carvel-base

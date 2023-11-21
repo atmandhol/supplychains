@@ -6,9 +6,11 @@ KBLD_VER=v0.38.0
 KAPP_VER=v0.59.0
 VENDIR_VER=v0.35.0
 KCTRL_VER=v0.48.1
+CRANE_VER=$(curl -s "https://api.github.com/repos/google/go-containerregistry/releases/latest" | jq -r '.tag_name')
 
 mkdir -p bin
 
+# TODO: In the production image creation scripts, don't skip the checksum verification like I have done here.
 install() {
   set -euo pipefail
 
@@ -41,6 +43,12 @@ install() {
   wget https://github.com/carvel-dev/kapp-controller/releases/download/$KCTRL_VER/kctrl-linux-amd64
   mv kctrl-linux-amd64 bin/kctrl
   chmod +x bin/kctrl
+
+  echo "Downloading crane..."
+  curl -sL "https://github.com/google/go-containerregistry/releases/download/${CRANE_VER}/go-containerregistry_Linux_x86_64.tar.gz" > go-containerregistry.tar.gz
+  tar -zxvf go-containerregistry.tar.gz -C bin/ crane
+  rm go-containerregistry.tar.gz
+  chmod +x bin/crane
 
 }
 
