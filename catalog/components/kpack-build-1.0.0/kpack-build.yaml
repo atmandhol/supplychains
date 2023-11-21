@@ -1,5 +1,5 @@
 ---
-apiVersion: cartographer.sh/v1alpha1
+apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
 kind: Component
 metadata:
   name: kpack-build-1.0.0

@@ -12,7 +12,7 @@ metadata:
   namespace: tap-install
 spec:
   packageRef:
-    refName: managed-resource-controller.tanzu.vmware.com
+    refName: managed-resource-controller.apps.tanzu.vmware.com
     versionSelection:
       constraints: ">=0.0.0"
       prereleases: {}
@@ -45,7 +45,7 @@ metadata:
   namespace: tap-install
 spec:
   packageRef:
-    refName: supply-chain.tanzu.vmware.com
+    refName: supply-chain.apps.tanzu.vmware.com
     versionSelection:
       constraints: ">=0.0.0"
       prereleases: {}
@@ -77,7 +77,7 @@ metadata:
   namespace: tap-install
 spec:
   packageRef:
-    refName: supply-chain-catalog.tanzu.vmware.com
+    refName: supply-chain-catalog.apps.tanzu.vmware.com
     versionSelection:
       constraints: ">=0.0.0"
       prereleases: {}

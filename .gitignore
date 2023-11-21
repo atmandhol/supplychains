@@ -2,6 +2,6 @@
 gke_gcloud_auth_plugin_cache
 .envrc
 tap-values.yaml
-almsc-kubeconfig.yaml
+kubeconfig.yaml
 base/carvel/bin/
 .DS_Store

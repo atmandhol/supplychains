@@ -4,5 +4,4 @@ CURRENT=$PWD
 
 export KUBECONFIG=kubeconfig.yaml
 
-# Install Catalog
-kapp deploy -a catalog -f catalog/ -y
+kapp delete -a tap-installation --yes

@@ -15,7 +15,7 @@ local_resource(
 
 watch_catalog_resources = [
   "catalog",
-   "scripts"
+  "scripts"
 ]
 
 watch_workloads = [
@@ -32,14 +32,14 @@ local_resource(
 
 local_resource(
     "stream-ng-logs",
-    serve_cmd="KUBECONFIG=almsc-kubeconfig.yaml stern -n cartographer-ng-system . --since=5m",
+    serve_cmd="KUBECONFIG=kubeconfig.yaml stern -n cartographer-ng-system . --since=5m",
     trigger_mode=TRIGGER_MODE_AUTO,
     resource_deps=['cluster', 'install-tap']
 )
 
 local_resource(
     "stream-mrc-logs",
-    serve_cmd="KUBECONFIG=almsc-kubeconfig.yaml stern -n managed-resource-controller . --since=5m",
+    serve_cmd="KUBECONFIG=kubeconfig.yaml stern -n managed-resource-controller . --since=5m",
     trigger_mode=TRIGGER_MODE_AUTO,
     resource_deps=['cluster', 'install-tap']
 )

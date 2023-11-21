@@ -2,7 +2,7 @@
 set -eo pipefail
 CURRENT=$PWD
 
-export KUBECONFIG=almsc-kubeconfig.yaml
+export KUBECONFIG=kubeconfig.yaml
 
 # Install cluster essentials
 kapp deploy -a kapp-controller -n kube-system -f https://github.com/vmware-tanzu/carvel-kapp-controller/releases/latest/download/release.yml -y
