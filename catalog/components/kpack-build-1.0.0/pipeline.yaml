@@ -1,0 +1,93 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: kpack-build
+  annotations:
+    kapp.k14s.io/change-group: "pipelines"
+spec:
+  description: Builds an image from the tar source using kpack
+  params:
+  - name: workload-name
+    type: string
+  - name: ns
+    type: string
+  - name: registry-repo
+    type: string
+  - name: source-url
+    type: string
+  - name: cluster-builder
+    type: string
+  - name: subpath
+    type: string
+  tasks:
+    - name: build
+      params:
+      - name: workload-name
+        value: $(params.workload-name)
+      - name: ns
+        value: $(params.ns)
+      - name: registry-repo
+        value: $(params.registry-repo)
+      - name: source-url
+        value: $(params.source-url)
+      - name: cluster-builder
+        value: $(params.cluster-builder)
+      - name: subpath
+        value: $(params.subpath)
+      taskSpec:
+        params:
+        - name: workload-name
+        - name: ns
+        - name: registry-repo
+        - name: cluster-builder
+        - name: source-url
+        - name: subpath
+        apiVersion: cartographer.sh/v1alpha1
+        kind: ManagedResource
+        spec:
+          params:
+          - name: workload-name
+          - name: ns
+          - name: registry-repo
+          - name: cluster-builder
+          - name: source-url
+          - name: subpath
+          resourceSpec:
+            apiVersion: kpack.io/v1alpha2
+            kind: Image
+            metadata:
+              name: $(params.workload-name)
+            spec:
+              tag: $(params.registry-repo)-$(params.workload-name)-$(params.ns)
+              serviceAccountName: default
+              builder:
+                kind: ClusterBuilder
+                name: $(params.cluster-builder)
+              source:
+                blob:
+                  url: $(params.source-url)
+                subPath: $(params.subpath)
+          resultMappings:
+            - name: image
+              path: status.latestImage
+          #! NOTE: HealthRules are required in ManagedResource section
+          healthRule:
+            multiMatch:
+              healthy:
+                matchConditions:
+                  - status: "True"
+                    type: BuilderReady
+                  - status: "True"
+                    type: Ready
+              unhealthy:
+                matchConditions:
+                  - status: "False"
+                    type: BuilderReady
+                  - status: "False"
+                    type: Ready
+  results:
+    - name: image
+      description: built image after kpack build
+      type: string
+      value: $(tasks.build.results.image)

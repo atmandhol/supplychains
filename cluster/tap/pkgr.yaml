@@ -1,0 +1,17 @@
+#@ load("@ytt:data", "data")
+---
+apiVersion: packaging.carvel.dev/v1alpha1
+kind: PackageRepository
+metadata:
+  annotations:
+    kapp.k14s.io/change-group: "installer/rbac"
+  name: tanzu-tap-repository
+  namespace: kapp-controller-packaging-global
+spec:
+  fetch:
+    imgpkgBundle:
+      image: #@ "registry.tanzu.vmware.com/tanzu-application-platform/tap-packages:{}".format(data.values.tap_version)
+      #@ if hasattr(data.values, "ucp"):
+      secretRef:
+        name: tap-registry
+      #@ end

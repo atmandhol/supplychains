@@ -1,0 +1,43 @@
+---
+apiVersion: cartographer.sh/v1alpha1
+kind: Component
+metadata:
+  name: tanzu-image-source-1.0.0
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting pipelines"
+    kapp.k14s.io/change-rule.1: "delete before deleting pipelines"
+spec:
+  description: Pulls source code in OCI format using Tanzu Source Controller ImageRepository resource
+  
+  #! Config
+  config:
+  - path: spec.source
+    schema:
+      type: object
+      properties:
+        image:
+          type: string
+        subPath:
+          type: string
+          description: The sub path in the bundle to locate source code
+          example: sub-dir
+          default: ""
+      required:
+        - image
+
+  #! Pipeline run definition
+  pipelineRun:
+    pipelineRef:
+      name: image-source
+    params:
+      - name: workload-name
+        value: $(workload.metadata.name)
+      - name: source-image
+        value: $(workload.spec.source.image)
+
+  #! Mention output from pipeline
+  outputs:
+    - name: source
+      type: source
+      digest: $(pipeline.results.revision)
+      url: $(pipeline.results.url)

@@ -1,0 +1,62 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:json", "json")
+#@ load("@ytt:base64", "base64")
+#@ def generate_dockerconfigjson(username, password, registry_host):
+#@   dcj = {"auths": {}}
+#@   up = {"username": username, "password": password}
+#@   dcj["auths"][registry_host] = up
+#@   return base64.encode(json.encode(dcj))
+#@ end
+---
+apiVersion: v1
+data:
+  .dockerconfigjson: #@ generate_dockerconfigjson(data.values.tzusername, data.values.tzpassword, "registry.tanzu.vmware.com")
+kind: Secret
+metadata:
+  annotations:
+    kapp.k14s.io/change-group: "installer/rbac"
+  name: tap-registry
+  namespace: kapp-controller-packaging-global
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: v1
+data:
+  .dockerconfigjson: #@ generate_dockerconfigjson(data.values.username, data.values.password, data.values.registry_server)
+kind: Secret
+metadata:
+  annotations:
+    kapp.k14s.io/change-group: "installer/rbac"
+  name: user-registry
+  namespace: kapp-controller-packaging-global
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: v1
+data:
+  .dockerconfigjson: #@ generate_dockerconfigjson(data.values.username, data.values.password, data.values.registry_server)
+kind: Secret
+metadata:
+  annotations:
+    kapp.k14s.io/change-group: "installer/rbac"
+  name: tbs-registry
+  namespace: tap-install
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: secretgen.carvel.dev/v1alpha1
+kind: SecretExport
+metadata:
+  annotations:
+    kapp.k14s.io/change-group: "installer/rbac"
+  name: tap-registry
+  namespace: kapp-controller-packaging-global
+spec:
+  toNamespace: "*"
+---
+apiVersion: secretgen.carvel.dev/v1alpha1
+kind: SecretExport
+metadata:
+  annotations:
+    kapp.k14s.io/change-group: "installer/rbac"
+  name: user-registry
+  namespace: kapp-controller-packaging-global
+spec:
+  toNamespace: "*"

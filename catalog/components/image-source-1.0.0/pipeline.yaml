@@ -1,0 +1,65 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: image-source
+  annotations:
+    kapp.k14s.io/change-group: "pipelines"
+spec:
+  description: Pulls source code in OCI format using Tanzu Source Controller ImageRepository resource
+  params:
+  - name: workload-name
+    type: string
+  - name: source-image
+    type: string
+  tasks:
+    - name: checkout
+      params:
+      - name: workload-name
+        value: $(params.workload-name)
+      - name: source-image
+        value: $(params.source-image)
+      taskSpec:
+        params:
+        - name: workload-name
+        - name: source-image
+        apiVersion: cartographer.sh/v1alpha1
+        kind: ManagedResource
+        spec:
+          params:
+          - name: workload-name
+          - name: source-image
+          resourceSpec:
+            apiVersion: source.apps.tanzu.vmware.com/v1alpha1
+            kind: ImageRepository
+            metadata:
+              name: $(params.workload-name)
+            spec:
+              serviceAccountName: default
+              interval: 1m0s
+              image: $(params.source-image)
+          resultMappings:
+            - name: url
+              path: status.artifact.url
+            - name: revision
+              path: status.artifact.revision
+          #! NOTE: HealthRules are required in ManagedResource section
+          healthRule:
+            multiMatch:
+              healthy:
+                matchConditions:
+                  - status: "True"
+                    type: Ready
+              unhealthy:
+                matchConditions:
+                  - status: "False"
+                    type: Ready
+  results:
+    - name: url
+      description: url of the resulting source object you can use in your chain
+      type: string
+      value: $(tasks.checkout.results.url)
+    - name: revision
+      description: digest of the shipped content sent to 'url'
+      type: string
+      value: $(tasks.checkout.results.revision)

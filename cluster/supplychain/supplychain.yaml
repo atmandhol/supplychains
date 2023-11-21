@@ -1,0 +1,95 @@
+---
+apiVersion: packaging.carvel.dev/v1alpha1
+kind: PackageInstall
+metadata:
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting installer/rbac"
+    kapp.k14s.io/change-rule.1: "delete before deleting installer/rbac"
+    kapp.k14s.io/change-rule.2: "upsert after upserting supplychain/controller"
+    kapp.k14s.io/change-rule.3: "delete before deleting supplychain/controller"
+    kapp.k14s.io/change-group: "supplychain/mrc"
+  name: managed-resource-controller
+  namespace: tap-install
+spec:
+  packageRef:
+    refName: managed-resource-controller.tanzu.vmware.com
+    versionSelection:
+      constraints: ">=0.0.0"
+      prereleases: {}
+  serviceAccountName: tap-install-sa
+  values:
+  - secretRef:
+      name: managed-resource-controller-values
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting installer/rbac"
+    kapp.k14s.io/change-rule.1: "delete before deleting installer/rbac"
+  name: managed-resource-controller-values
+  namespace: tap-install
+stringData:
+    values.yml: ""
+---
+apiVersion: packaging.carvel.dev/v1alpha1
+kind: PackageInstall
+metadata:
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting installer/rbac"
+    kapp.k14s.io/change-rule.1: "delete before deleting installer/rbac"
+    kapp.k14s.io/change-rule.2: "upsert after upserting tap/install"
+    kapp.k14s.io/change-rule.3: "delete before deleting tap/install"
+    kapp.k14s.io/change-group: "supplychain/controller"
+  name: supplychain
+  namespace: tap-install
+spec:
+  packageRef:
+    refName: supply-chain.tanzu.vmware.com
+    versionSelection:
+      constraints: ">=0.0.0"
+      prereleases: {}
+  serviceAccountName: tap-install-sa
+  values:
+  - secretRef:
+      name: supplychain-values
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting installer/rbac"
+    kapp.k14s.io/change-rule.1: "delete before deleting installer/rbac"
+  name: supplychain-values
+  namespace: tap-install
+stringData:
+    values.yml: ""
+---
+apiVersion: packaging.carvel.dev/v1alpha1
+kind: PackageInstall
+metadata:
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting installer/rbac"
+    kapp.k14s.io/change-rule.1: "delete before deleting installer/rbac"
+    kapp.k14s.io/change-rule.2: "upsert after upserting supplychain/mrc"
+    kapp.k14s.io/change-rule.3: "delete before deleting supplychain/mrc"
+  name: supplychain-catalog
+  namespace: tap-install
+spec:
+  packageRef:
+    refName: supply-chain-catalog.tanzu.vmware.com
+    versionSelection:
+      constraints: ">=0.0.0"
+      prereleases: {}
+  serviceAccountName: tap-install-sa
+  values:
+  - secretRef:
+      name: supplychain-catalog-values
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: supplychain-catalog-values
+  namespace: tap-install
+stringData:
+    values.yml: ""

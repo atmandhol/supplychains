@@ -1,0 +1,75 @@
+#@ load("@ytt:data", "data")
+---
+apiVersion: packaging.carvel.dev/v1alpha1
+kind: PackageInstall
+metadata:
+  name: tap
+  namespace: tap-install
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting installer/rbac"
+    kapp.k14s.io/change-rule.1: "delete before deleting installer/rbac"
+    kapp.k14s.io/change-group: "tap/install"
+spec:
+  packageRef:
+    refName: tap.tanzu.vmware.com
+    versionSelection:
+      constraints: ">=0.0.0"
+      prereleases: {}
+  serviceAccountName: installer
+  values:
+  - secretRef:
+      name: tap-values
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tap-values
+  namespace: tap-install
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting installer/rbac"
+    kapp.k14s.io/change-rule.1: "delete before deleting installer/rbac"
+type: Opaque
+stringData:
+  #@yaml/text-templated-strings
+  values.yaml: |
+    shared:
+      ingress_domain: 127.0.0.1
+    ceip_policy_disclosed: true
+    profile: iterate
+    buildservice:
+      kp_default_repository: (@= data.values.registry_server @)/(@= data.values.registry_path @)
+      kp_default_repository_secret:
+        name: tbs-registry
+        namespace: tap-install
+    supply_chain: basic
+    ootb_supply_chain_basic:
+      registry:
+        server: (@= data.values.registry_server @)
+        repository: (@= data.values.registry_path @)
+      gitops:
+        ssh_secret: ""
+    cnrs:
+      domain_name: 127.0.0.1
+    contour:
+      infrastructure_provider: vsphere
+      envoy:
+        service:
+          type: NodePort
+    excluded_packages:
+    - learningcenter.tanzu.vmware.com
+    - workshops.learningcenter.tanzu.vmware.com
+    - apis.apps.tanzu.vmware.com
+    - apiserver.appliveview.tanzu.vmware.com
+    - connector.appliveview.tanzu.vmware.com
+    - conventions.appliveview.tanzu.vmware.com
+    - sso.apps.tanzu.vmware.com
+    - bitnami.services.tanzu.vmware.com
+    - crossplane.tanzu.vmware.com
+    - developer-conventions.tanzu.vmware.com
+    - ootb-delivery-basic.tanzu.vmware.com
+    - ootb-supply-chain-basic.tanzu.vmware.com
+    - ootb-templates.tanzu.vmware.com
+    - policy.apps.tanzu.vmware.com
+    - spring-boot-conventions.tanzu.vmware.com
+    tap_telemetry:
+      installed_for_vmware_internal_use: "true"

@@ -1,0 +1,22 @@
+---
+apiVersion: alm.vmware.com/v1alpha1
+kind: CarvelApp
+metadata:
+  name: spring-petclinic
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting supplychains"
+    kapp.k14s.io/change-rule.1: "delete before deleting supplychains"
+spec:
+  image:
+    builder: base-jammy
+  registry:
+    server: us-east4-docker.pkg.dev
+    repository: adhol-playground/supplychain/apps
+  source:
+    git:
+      branch: main
+      url: https://github.com/atmandhol/sample-apps.git
+    subPath: source/spring-petclinic
+  env:
+  - name: foo
+    value: bar

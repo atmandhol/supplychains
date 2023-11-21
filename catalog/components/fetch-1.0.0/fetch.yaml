@@ -1,0 +1,70 @@
+---
+apiVersion: cartographer.sh/v1alpha1
+kind: Component
+metadata:
+  name: fetch-1.0.0
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting pipelines"
+    kapp.k14s.io/change-rule.1: "delete before deleting pipelines"
+spec:
+  description: Fetches stuff from different places
+  
+  #! Config
+  config:
+  - path: spec.source
+    schema:
+      type: object
+      properties:
+        git:
+          type: object
+          description: |
+            Fill this object in if you want your source to come from git.
+            The tag, commit and branch fields are mutually exclusive, use only one.
+          properties:
+            tag:
+              description: A git tag ref to watch for new source
+              type: string
+              example: v1.0.0
+            commit:
+              description: A git commit sha to use
+              type: string
+            branch:
+              description: A git branch ref to watch for new source
+              type: string
+              example: main
+            url:
+              description: The url to the git source repository
+              type: string
+              example: https://github.com/acme/my-workload.git
+          required:
+            - url
+        subPath:
+          type: string
+          description: The sub path in the bundle to locate source code
+          example: sub-dir
+          default: ""
+      required:
+        - git
+
+  #! Pipeline run definition
+  pipelineRun:
+    pipelineRef:
+      name: git-source
+    params:
+      - name: workload-name
+        value: $(workload.metadata.name)
+      - name: git-branch
+        value: $(workload.spec.source.git.branch)
+      - name: git-url
+        value: $(workload.spec.source.git.url)
+      # - name: git-commit
+      #   value: $(workload.spec.source.git.commit)
+      # - name: git-tag
+      #   value: $(workload.spec.source.git.tag)
+
+  #! Mention output from pipeline
+  outputs:
+    - name: source
+      type: source
+      digest: $(pipeline.results.revision)
+      url: $(pipeline.results.url)

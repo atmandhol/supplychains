@@ -1,0 +1,48 @@
+---
+apiVersion: cartographer.sh/v1alpha1
+kind: Component
+metadata:
+  name: conventions-1.0.0
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting pipelines"
+    kapp.k14s.io/change-rule.1: "delete before deleting pipelines"
+spec:
+  description: Use the conventions service to generate pod intents
+  
+  #! Config
+  config:
+    - path: spec.env
+      schema:
+        type: array
+        items:
+          type: object
+          properties:
+            name:
+              type: string
+            value:
+              type: string
+          required:
+            - name
+            - value
+
+  inputs:
+  - name: image
+    type: image
+
+  #! Pipeline run definition
+  pipelineRun:
+    params:
+      - name: image-url
+        value: $(inputs.image.url)
+      - name: workload-name
+        value: $(workload.metadata.name)
+      - name: env
+        value: $(workload.spec.env)
+    pipelineRef:
+      name: conventions
+
+  #! Mention output from pipeline
+  outputs:
+    - name: conventions
+      type: conventions
+      podspec: $(pipeline.results.conventions)
