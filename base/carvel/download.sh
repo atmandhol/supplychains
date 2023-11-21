@@ -1,12 +1,14 @@
 #!/bin/bash
 
-YTT_VER=v0.46.0
-IMGPKG_VER=v0.39.0
-KBLD_VER=v0.38.0
-KAPP_VER=v0.59.0
-VENDIR_VER=v0.35.0
-KCTRL_VER=v0.48.1
+YTT_VER="v0.46.0"
+IMGPKG_VER="v0.39.0"
+KBLD_VER="v0.38.0"
+KAPP_VER="v0.59.0"
+VENDIR_VER="v0.35.0"
+KCTRL_VER="v0.48.1"
 CRANE_VER=$(curl -s "https://api.github.com/repos/google/go-containerregistry/releases/latest" | jq -r '.tag_name')
+YQ_VER="v4.2.0"
+JQ_VER="1.7"
 
 mkdir -p bin
 
@@ -50,6 +52,12 @@ install() {
   rm go-containerregistry.tar.gz
   chmod +x bin/crane
 
+  echo "Downloading yq..."
+  wget https://github.com/mikefarah/yq/releases/download/$YQ_VER/yq_linux_amd64 -O bin/yq && chmod +x bin/yq
+
+  echo "Downloading jq..."
+  wget https://github.com/jqlang/jq/releases/download/jq-$JQ_VER/jq-linux-amd64 -O bin/jq && chmod +x bin/jq
+  
 }
 
 install
