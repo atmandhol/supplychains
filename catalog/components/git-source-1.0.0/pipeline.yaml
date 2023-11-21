@@ -38,7 +38,7 @@ spec:
         - name: git-url
         # - name: git-commit
         # - name: git-tag
-        apiVersion: cartographer.sh/v1alpha1
+        apiVersion: managed-resource-controller.apps.tanzu.vmware.com/v1alpha1
         kind: ManagedResource
         spec:
           params:

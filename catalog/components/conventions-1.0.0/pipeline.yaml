@@ -99,7 +99,7 @@ spec:
         - name: resource
           value: $(tasks.prepare.results.resource)
       taskSpec:
-        apiVersion: cartographer.sh/v1alpha1
+        apiVersion: managed-resource-controller.apps.tanzu.vmware.com/v1alpha1
         kind: ManagedResource
         spec:
           resourceSpec:

@@ -23,7 +23,7 @@ spec:
         params:
         - name: workload-name
         - name: source-image
-        apiVersion: cartographer.sh/v1alpha1
+        apiVersion: managed-resource-controller.apps.tanzu.vmware.com/v1alpha1
         kind: ManagedResource
         spec:
           params:

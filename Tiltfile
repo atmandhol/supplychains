@@ -32,7 +32,7 @@ local_resource(
 
 local_resource(
     "stream-ng-logs",
-    serve_cmd="KUBECONFIG=kubeconfig.yaml stern -n cartographer-ng-system . --since=5m",
+    serve_cmd="KUBECONFIG=kubeconfig.yaml stern -n supply-chain-system . --since=5m",
     trigger_mode=TRIGGER_MODE_AUTO,
     resource_deps=['cluster', 'install-tap']
 )
