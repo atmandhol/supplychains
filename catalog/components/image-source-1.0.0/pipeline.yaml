@@ -33,7 +33,7 @@ spec:
             apiVersion: source.apps.tanzu.vmware.com/v1alpha1
             kind: ImageRepository
             metadata:
-              name: $(params.workload-name)
+              generateName: $(params.workload-name)-
             spec:
               serviceAccountName: default
               interval: 1m0s
