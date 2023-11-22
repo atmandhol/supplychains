@@ -1,0 +1,11 @@
+---
+apiVersion: alm.vmware.com/v1alpha1
+kind: LocalCarvelApp
+metadata:
+  name: spring-petclinic
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting supplychains"
+    kapp.k14s.io/change-rule.1: "delete before deleting supplychains"
+spec:
+  source:
+    image: gcr.io/adhol-playground/lsp:dev-spring-petclinic@sha256:2c018812568617a23a433a8d96976bd17660dab430019b2fb5f4a1ccb0b350da
