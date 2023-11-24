@@ -35,14 +35,14 @@ stringData:
     shared:
       ingress_domain: 127.0.0.1
     ceip_policy_disclosed: true
-    profile: iterate
+    profile: full
     buildservice:
       kp_default_repository: (@= data.values.registry_server @)/(@= data.values.registry_path @)
       kp_default_repository_secret:
         name: tbs-registry
         namespace: tap-install
-    supply_chain: basic
-    ootb_supply_chain_basic:
+    supply_chain: testing_scanning
+    ootb_supply_chain_testing_scanning:
       registry:
         server: (@= data.values.registry_server @)
         repository: (@= data.values.registry_path @)
@@ -50,6 +50,11 @@ stringData:
         ssh_secret: ""
     cnrs:
       domain_name: 127.0.0.1
+    grype:
+      namespace: tap-install
+    metadata_store:
+      ns_for_export_app_cert: '*'
+      app_service_type: ClusterIP
     contour:
       infrastructure_provider: vsphere
       envoy:
@@ -62,14 +67,23 @@ stringData:
     - apiserver.appliveview.tanzu.vmware.com
     - connector.appliveview.tanzu.vmware.com
     - conventions.appliveview.tanzu.vmware.com
+    - backend.appliveview.tanzu.vmware.com
     - sso.apps.tanzu.vmware.com
     - bitnami.services.tanzu.vmware.com
     - crossplane.tanzu.vmware.com
+    - api-portal.tanzu.vmware.com
     - developer-conventions.tanzu.vmware.com
     - ootb-delivery-basic.tanzu.vmware.com
     - ootb-supply-chain-basic.tanzu.vmware.com
     - ootb-templates.tanzu.vmware.com
     - policy.apps.tanzu.vmware.com
-    - spring-boot-conventions.tanzu.vmware.com
+    - spring-boot-conventions.tanzu.vmware
+    - local-source-proxy.apps.tanzu.vmware.com
+    - cnrs.tanzu.vmware.com
+    - tap-gui.tanzu.vmware.com
     tap_telemetry:
       installed_for_vmware_internal_use: "true"
+    tekton_pipelines:
+      feature_flags:
+        enable_api_fields: alpha
+        disable_affinity_assistant: "true"

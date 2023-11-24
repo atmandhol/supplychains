@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: alm-catalog
+  name: cluster-admin-for-development
 rules:
 - apiGroups:
   - '*'
@@ -15,19 +15,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   annotations:
-  name: managed-resource-controller-alm-catalog
+  name: managed-resource-controller-cluster-admin-for-development
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: alm-catalog
+  name: cluster-admin-for-development
 subjects:
-#! Giving CRC manager service account admin permissions for now
+#! Giving MRC manager service account admin permissions for now
 #! TODO: Remove in the future or use Namespace provisioner instead
 - kind: ServiceAccount
   name: managed-resource-controller-manager
   namespace: managed-resource-controller
-#! Giving default service account admin permissions for now
-#! TODO: Remove in the future or use Namespace provisioner instead
-- kind: ServiceAccount
-  name: default
-  namespace: default
