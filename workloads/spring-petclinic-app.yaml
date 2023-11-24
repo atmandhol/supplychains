@@ -1,0 +1,24 @@
+---
+apiVersion: alm.vmware.com/v1alpha1
+kind: App
+metadata:
+  name: spring-petclinic-app
+  annotations:
+    kapp.k14s.io/change-rule.0: "upsert after upserting supplychains"
+    kapp.k14s.io/change-rule.1: "delete before deleting supplychains"
+spec:
+  # image:
+  #   builder: base-jammy
+  # registry:
+  #   server: us-east4-docker.pkg.dev
+  #   repository: adhol-playground/supplychain/apps
+  source:
+    git:
+      #! valid commits are d7c026c5b91723ecb16887da0060a5c7eaefa883 and b5f0a63db67565fa53b9ca9e9757fe27690f0d8b
+      #! commit:
+      branch: main
+      url: https://github.com/atmandhol/sample-apps.git
+    subPath: source/spring-petclinic
+  # env:
+  # - name: foo
+  #   value: bar
