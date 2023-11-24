@@ -1,0 +1,87 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: git-source-1.0.1
+  annotations:
+    kapp.k14s.io/change-group: "pipelines"
+    kapp.k14s.io/change-rule: "upsert after upserting tasks"
+spec:
+  description: |
+    This pipeline stores the head of the git repository into an oci store.
+  params:
+    - name: workload-name
+      type: string
+      description: The name of the workload
+    - name: git-url
+      type: string
+      description: The git repo URL to clone from.
+    - name: sha
+      type: string
+      description: The git commit to clone.
+  workspaces:
+    - name: shared-data
+      description: |
+        This workspace contains the cloned repo files, so they can be read by the
+        next task.
+  tasks:
+    - name: fetch
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-data
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.sha)
+
+    - name: strip-git
+      runAfter:
+        - fetch
+      taskSpec:
+        stepTemplate:
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 1001
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: "RuntimeDefault"
+            runAsNonRoot: true
+        steps:
+          - name: rm
+            image: us-east4-docker.pkg.dev/adhol-playground/image-base/big-base:latest
+            script: |
+              #!/bin/bash
+              
+              set -euo pipefail
+              
+              rm -rf $(workspaces.content.path)/.git
+      workspaces:
+        - name: content
+          workspace: shared-data
+
+    - name: store
+      runAfter:
+        - strip-git
+      params:
+      - name: workload-name
+        value: $(params.workload-name)
+      taskRef:
+        name: store-content-oci
+      workspaces:
+        - name: input
+          workspace: shared-data
+
+  results:
+    - name: url
+      description: url of the resulting source object you can use in your chain
+      type: string
+      value: $(tasks.store.results.url)
+    - name: digest
+      description: digest of the shipped content sent to 'url'
+      type: string
+      value: $(tasks.store.results.digest)
+
