@@ -17,6 +17,8 @@ ytt -f cluster/ \
     -v tzpassword=$TANZUNET_PASSWORD \
     -v username=$REGISTRY_USERNAME \
     -v password="$REGISTRY_PASSWORD" \
+    -v git_username=$GIT_USERNAME \
+    -v git_password=$GIT_PASSWORD \
     -v registry_server=$REGISTRY_SERVER \
     -v registry_path=$REGISTRY_PATH | kapp deploy -a tap-installation -c -f- --yes
 

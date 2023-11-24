@@ -1,0 +1,19 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:json", "json")
+#@ load("@ytt:base64", "base64")
+#@ def generate_dockerconfigjson(username, password, registry_host):
+#@   dcj = {"auths": {}}
+#@   up = {"username": username, "password": password}
+#@   dcj["auths"][registry_host] = up
+#@   return base64.encode(json.encode(dcj))
+#@ end
+---
+apiVersion: v1
+data:
+  .dockerconfigjson: #@ generate_dockerconfigjson(data.values.username, data.values.password, data.values.registry_server)
+kind: Secret
+metadata:
+  annotations:
+    tekton.dev/docker-0: #@ data.values.registry_server + "/" + data.values.registry_path
+  name: oci-store-creds
+type: kubernetes.io/dockerconfigjson

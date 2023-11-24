@@ -48,6 +48,15 @@ stringData:
         repository: (@= data.values.registry_path @)
       gitops:
         ssh_secret: ""
+    namespace_provisioner:
+      controller: true
+      default_parameters:
+        supply_chain_service_account:
+          secrets:
+          - git
+          - oci-store-creds
+          imagePullSecrets:
+          - oci-store-creds
     cnrs:
       domain_name: 127.0.0.1
     grype:
