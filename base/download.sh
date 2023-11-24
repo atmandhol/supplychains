@@ -9,6 +9,8 @@ KCTRL_VER="v0.48.1"
 CRANE_VER=$(curl -s "https://api.github.com/repos/google/go-containerregistry/releases/latest" | jq -r '.tag_name')
 YQ_VER="v4.2.0"
 JQ_VER="1.7"
+KUBECTL_VER="1.27.4"
+KUSTOMIZE_VER="5.1.0"
 
 mkdir -p bin
 
@@ -58,6 +60,15 @@ install() {
   echo "Downloading jq..."
   wget https://github.com/jqlang/jq/releases/download/jq-$JQ_VER/jq-linux-amd64 -O bin/jq && chmod +x bin/jq
   
+  echo "Downloading kubectl..."
+  wget https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VER}/bin/linux/amd64/kubectl -O bin/kubectl && chmod +x bin/kubectl
+
+  echo "Downloading kustomize..."
+  curl -sL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v${KUSTOMIZE_VER}/kustomize_v${KUSTOMIZE_VER}_linux_amd64.tar.gz" > kustomize.tar.gz
+  tar -zxvf kustomize.tar.gz -C bin/ kustomize
+  rm kustomize.tar.gz
+  chmod +x bin/kustomize
+
 }
 
 install
