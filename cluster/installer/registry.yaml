@@ -60,3 +60,13 @@ metadata:
   namespace: kapp-controller-packaging-global
 spec:
   toNamespace: "*"
+---
+apiVersion: secretgen.carvel.dev/v1alpha1
+kind: SecretExport
+metadata:
+  annotations:
+    kapp.k14s.io/change-group: "installer/rbac"
+  name: tbs-registry
+  namespace: tap-install
+spec:
+  toNamespace: "*"
