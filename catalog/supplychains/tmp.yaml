@@ -1,0 +1,1282 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: source-git-clone
+spec:
+  description: |-
+    These Tasks are Git tasks to work with repositories used by other tasks in your Pipeline.
+    The git-clone Task will clone a repo from the provided url into the output Workspace. By default the repo will be cloned into the root of your Workspace. You can clone into a subdirectory by setting this Task's subdirectory param. This Task also supports sparse checkouts. To perform a sparse checkout, pass a list of comma separated directory patterns to this Task's sparseCheckoutDirectories param.
+  params:
+  - description: Repository URL to clone from.
+    name: url
+    type: string
+  - default: ""
+    description: Revision to checkout. (branch, tag, sha, ref, etc...)
+    name: revision
+    type: string
+  - default: ""
+    description: Refspec to fetch before checking out revision.
+    name: refspec
+    type: string
+  - default: "true"
+    description: Initialize and fetch git submodules.
+    name: submodules
+    type: string
+  - default: "1"
+    description: Perform a shallow clone, fetching only the most recent N commits.
+    name: depth
+    type: string
+  - default: "true"
+    description: Set the `http.sslVerify` global git config. Setting this to `false`
+      is not advised unless you are sure that you trust your git remote.
+    name: ssl-verify
+    type: string
+  - default: ca-bundle.crt
+    description: file name of mounted crt using ssl-ca-directory workspace. default
+      value is ca-bundle.crt.
+    name: crt-file-name
+    type: string
+  - default: ""
+    description: Subdirectory inside the `output` Workspace to clone the repo into.
+    name: subdirectory
+    type: string
+  - default: ""
+    description: Define the directory patterns to match or exclude when performing
+      a sparse checkout.
+    name: sparse-checkout-directories
+    type: string
+  - default: "true"
+    description: Clean out the contents of the destination directory if it already
+      exists before cloning.
+    name: delete-existing
+    type: string
+  - default: ""
+    description: HTTP proxy server for non-SSL requests.
+    name: http-proxy
+    type: string
+  - default: ""
+    description: HTTPS proxy server for SSL requests.
+    name: https-proxy
+    type: string
+  - default: ""
+    description: Opt out of proxying HTTP/HTTPS requests.
+    name: no-proxy
+    type: string
+  - default: "true"
+    description: Log the commands that are executed during `git-clone`'s operation.
+    name: verbose
+    type: string
+  - default: /home/cnb
+    description: |
+      Absolute path to the user's home directory.
+    name: user-home
+    type: string
+  results:
+  - description: The precise commit SHA that was fetched by this Task.
+    name: commit
+    type: string
+  - description: The precise URL that was fetched by this Task.
+    name: url
+    type: string
+  - description: The epoch timestamp of the commit that was fetched by this Task.
+    name: committer-date
+    type: string
+  stepTemplate:
+    computeResources: {}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsNonRoot: true
+      runAsUser: 1001
+      seccompProfile:
+        type: RuntimeDefault
+  steps:
+  - computeResources: {}
+    env:
+    - name: HOME
+      value: $(params.user-home)
+    - name: PARAM_URL
+      value: $(params.url)
+    - name: PARAM_REVISION
+      value: $(params.revision)
+    - name: PARAM_REFSPEC
+      value: $(params.refspec)
+    - name: PARAM_SUBMODULES
+      value: $(params.submodules)
+    - name: PARAM_DEPTH
+      value: $(params.depth)
+    - name: PARAM_SSL_VERIFY
+      value: $(params.ssl-verify)
+    - name: PARAM_CRT_FILENAME
+      value: $(params.crt-file-name)
+    - name: PARAM_SUBDIRECTORY
+      value: $(params.subdirectory)
+    - name: PARAM_DELETE_EXISTING
+      value: $(params.delete-existing)
+    - name: PARAM_HTTP_PROXY
+      value: $(params.http-proxy)
+    - name: PARAM_HTTPS_PROXY
+      value: $(params.https-proxy)
+    - name: PARAM_NO_PROXY
+      value: $(params.no-proxy)
+    - name: PARAM_VERBOSE
+      value: $(params.verbose)
+    - name: PARAM_SPARSE_CHECKOUT_DIRECTORIES
+      value: $(params.sparse-checkout-directories)
+    - name: PARAM_USER_HOME
+      value: $(params.user-home)
+    - name: WORKSPACE_OUTPUT_PATH
+      value: $(workspaces.output.path)
+    - name: WORKSPACE_SSH_DIRECTORY_BOUND
+      value: $(workspaces.ssh-directory.bound)
+    - name: WORKSPACE_SSH_DIRECTORY_PATH
+      value: $(workspaces.ssh-directory.path)
+    - name: WORKSPACE_BASIC_AUTH_DIRECTORY_BOUND
+      value: $(workspaces.basic-auth.bound)
+    - name: WORKSPACE_BASIC_AUTH_DIRECTORY_PATH
+      value: $(workspaces.basic-auth.path)
+    - name: WORKSPACE_SSL_CA_DIRECTORY_BOUND
+      value: $(workspaces.ssl-ca-directory.bound)
+    - name: WORKSPACE_SSL_CA_DIRECTORY_PATH
+      value: $(workspaces.ssl-ca-directory.path)
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:9a28f2eb58182a27fea319f722578b16278ed36c40f7e98c6b0736cfdf8f110a
+    name: clone
+    script: |
+      #!/usr/bin/env sh
+      set -eu
+
+      if [ "${PARAM_VERBOSE}" = "true" ] ; then
+        set -x
+      fi
+
+      if [ "${WORKSPACE_BASIC_AUTH_DIRECTORY_BOUND}" = "true" ] ; then
+        cp "${WORKSPACE_BASIC_AUTH_DIRECTORY_PATH}/.git-credentials" "${PARAM_USER_HOME}/.git-credentials"
+        cp "${WORKSPACE_BASIC_AUTH_DIRECTORY_PATH}/.gitconfig" "${PARAM_USER_HOME}/.gitconfig"
+        chmod 400 "${PARAM_USER_HOME}/.git-credentials"
+        chmod 400 "${PARAM_USER_HOME}/.gitconfig"
+      fi
+
+      if [ "${WORKSPACE_SSH_DIRECTORY_BOUND}" = "true" ] ; then
+        cp -R "${WORKSPACE_SSH_DIRECTORY_PATH}" "${PARAM_USER_HOME}"/.ssh
+        chmod 700 "${PARAM_USER_HOME}"/.ssh
+        chmod -R 400 "${PARAM_USER_HOME}"/.ssh/*
+      fi
+
+      if [ "${WORKSPACE_SSL_CA_DIRECTORY_BOUND}" = "true" ] ; then
+         export GIT_SSL_CAPATH="${WORKSPACE_SSL_CA_DIRECTORY_PATH}"
+         if [ "${PARAM_CRT_FILENAME}" != "" ] ; then
+            export GIT_SSL_CAINFO="${WORKSPACE_SSL_CA_DIRECTORY_PATH}/${PARAM_CRT_FILENAME}"
+         fi
+      fi
+      CHECKOUT_DIR="${WORKSPACE_OUTPUT_PATH}/${PARAM_SUBDIRECTORY}"
+
+      cleandir() {
+        # Delete any existing contents of the repo directory if it exists.
+        #
+        # We don't just "rm -rf ${CHECKOUT_DIR}" because ${CHECKOUT_DIR} might be "/"
+        # or the root of a mounted volume.
+        if [ -d "${CHECKOUT_DIR}" ] ; then
+          # Delete non-hidden files and directories
+          rm -rf "${CHECKOUT_DIR:?}"/*
+          # Delete files and directories starting with . but excluding ..
+          rm -rf "${CHECKOUT_DIR}"/.[!.]*
+          # Delete files and directories starting with .. plus any other character
+          rm -rf "${CHECKOUT_DIR}"/..?*
+        fi
+      }
+
+      if [ "${PARAM_DELETE_EXISTING}" = "true" ] ; then
+        cleandir || true
+      fi
+
+      test -z "${PARAM_HTTP_PROXY}" || export HTTP_PROXY="${PARAM_HTTP_PROXY}"
+      test -z "${PARAM_HTTPS_PROXY}" || export HTTPS_PROXY="${PARAM_HTTPS_PROXY}"
+      test -z "${PARAM_NO_PROXY}" || export NO_PROXY="${PARAM_NO_PROXY}"
+
+      git config --global --add safe.directory "${WORKSPACE_OUTPUT_PATH}"
+      git-source \
+        -url="${PARAM_URL}" \
+        -revision="${PARAM_REVISION}" \
+        -refspec="${PARAM_REFSPEC}" \
+        -path="${CHECKOUT_DIR}" \
+        -sslVerify="${PARAM_SSL_VERIFY}" \
+        -submodules="${PARAM_SUBMODULES}" \
+        -depth="${PARAM_DEPTH}" \
+        -sparseCheckoutDirectories="${PARAM_SPARSE_CHECKOUT_DIRECTORIES}"
+      cd "${CHECKOUT_DIR}"
+      RESULT_SHA="$(git rev-parse HEAD)"
+      EXIT_CODE="$?"
+      if [ "${EXIT_CODE}" != 0 ] ; then
+        exit "${EXIT_CODE}"
+      fi
+      RESULT_COMMITTER_DATE="$(git log -1 --pretty=%ct)"
+      printf "%s" "${RESULT_COMMITTER_DATE}" > "$(results.committer-date.path)"
+      printf "%s" "${RESULT_SHA}" > "$(results.commit.path)"
+      printf "%s" "${PARAM_URL}" > "$(results.url.path)"
+  workspaces:
+  - description: The git repo will be cloned onto the volume backing this Workspace.
+    name: output
+  - description: |
+      A .ssh directory with private key, known_hosts, config, etc. Copied to
+      the user's home before git commands are executed. Used to authenticate
+      with the git remote when performing the clone. Binding a Secret to this
+      Workspace is strongly recommended over other volume types.
+    name: ssh-directory
+    optional: true
+  - description: |
+      A Workspace containing a .gitconfig and .git-credentials file. These
+      will be copied to the user's home before any git commands are run. Any
+      other files in this Workspace are ignored. It is strongly recommended
+      to use ssh-directory over basic-auth whenever possible and to bind a
+      Secret to this Workspace over other volume types.
+    name: basic-auth
+    optional: true
+  - description: |
+      A workspace containing CA certificates, this will be used by Git to
+      verify the peer with when fetching or pushing over HTTPS.
+    name: ssl-ca-directory
+    optional: true
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: store-content-oci
+spec:
+  params:
+  - name: workload-name
+    type: string
+  results:
+  - name: digest
+    type: string
+  - name: url
+    type: string
+  - name: message
+    type: string
+  stepTemplate:
+    computeResources: {}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsGroup: 1001
+      runAsNonRoot: true
+      runAsUser: 1001
+      seccompProfile:
+        type: RuntimeDefault
+  steps:
+  - computeResources: {}
+    env:
+    - name: OCI_SERVER
+      valueFrom:
+        secretKeyRef:
+          key: server
+          name: oci-store
+    - name: OCI_REPOSITORY
+      valueFrom:
+        secretKeyRef:
+          key: repository
+          name: oci-store
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:9aac15f5b52b64c7919681b5c2c154f3e17ed8de68b6ff91e5214376e5480da8
+    name: store
+    script: |-
+      #!/bin/bash
+
+      set -euo pipefail
+
+      # FIXME this line is horrible, but I don't (yet) want to write my own binary to do this
+      IMAGE_NAME=$(imgpkg push -i ${OCI_SERVER}/${OCI_REPOSITORY}/$(params.workload-name)-store -f $(workspaces.input.path) --tty | grep Pushed | sed "s/Pushed//" | sed "s/'//g" | sed 's/ //g')
+      if [ $? -ne 0 ]; then
+        printf "upload failed" | tee $(results.message.path)
+        exit 1
+      fi
+
+      printf "${IMAGE_NAME#*sha256:}" > $(results.digest.path)
+      printf "${IMAGE_NAME}" > $(results.url.path)
+  workspaces:
+  - description: The content to be tar'ed and sent
+    name: input
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: source-git-check
+spec:
+  params:
+  - default: ""
+    description: A git branch ref to watch for new source
+    name: git-branch
+    type: string
+  - default: ""
+    description: A git tag ref to watch for new source
+    name: git-tag
+    type: string
+  - default: ""
+    description: A git commit sha to use
+    name: git-commit
+    type: string
+  - description: The url to the git source repository. +Required
+    name: git-url
+    type: string
+  results:
+  - description: The url to the git source repository.
+    name: url
+    type: string
+  - description: The sha to clone as configured by commit/branch/tag
+    name: sha
+    type: string
+  - description: The sha to clone as configured by commit/branch/tag
+    name: checksum
+    type: string
+  - description: Important result description, especially for error messages
+    name: message
+    type: string
+  stepTemplate:
+    computeResources: {}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsNonRoot: true
+      runAsUser: 1001
+      seccompProfile:
+        type: RuntimeDefault
+  steps:
+  - computeResources: {}
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:9a28f2eb58182a27fea319f722578b16278ed36c40f7e98c6b0736cfdf8f110a
+    name: get-latest-commit
+    script: |
+      if [ "$(params.git-url)" == "" ]; then
+        printf "No git-url provided. git-url must exist" | tee $(results.message.path)
+        exit 1
+      fi
+
+      printf "$(params.git-url)" | tee $(results.url.path)
+
+      if [ "$(params.git-branch)" != "" ]; then
+        git ls-remote --heads $(params.git-url) $(params.git-branch) | awk '{print $1}' | tr -d '\n' | tee $(results.sha.path)
+        printf "using git-branch: $(params.git-branch)" | tee $(results.message.path)
+      elif [ "$(params.git-tag)" != "" ]; then
+        git ls-remote --tags $(params.git-url) refs/tags/$(params.git-tag) | awk '{print $1}' | tr -d '\n' | tee $(results.sha.path)
+        printf "using git-tag: $(params.git-tag)" | tee $(results.message.path)
+      elif [ "$(params.git-commit)" != "" ]; then
+        printf "$(params.git-commit)" | tee $(results.sha.path)
+        printf "using git-commit: $(params.git-commit)" | tee $(results.message.path)
+      else
+        printf "Cannot look for source, you must provide one of git-branch, git-tag, git-commit or git-url." | tee $(results.message.path)
+        exit 1
+      fi
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: prepare-build
+spec:
+  params:
+  - description: url of source registry image
+    name: source-url
+    type: string
+  - description: image to push built application to
+    name: image
+    type: string
+  - description: builder image to run build on
+    name: builder-image
+    type: string
+  - description: base image for built application
+    name: run-image
+    type: string
+  - description: sub directory in source to become root dir for build
+    name: sub-path
+    type: string
+  - description: git revision of source (used for generating correct build metadata)
+    name: revision
+    type: string
+  - description: workload resource
+    name: workload
+    type: string
+  - description: name of service account to use for build
+    name: service-account-name
+    type: string
+  results:
+  - description: spec for build resource
+    name: build-spec
+    type: string
+  stepTemplate:
+    computeResources: {}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsNonRoot: true
+      runAsUser: 1001
+      seccompProfile:
+        type: RuntimeDefault
+  steps:
+  - computeResources: {}
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:748a1c06b3a9ed28b0f9d37077a1ec61f06438cf50a345f0439bb8882ac381f9
+    name: prepare-resource
+    script: "#!/usr/bin/env bash\n\nset -euo pipefail\ncd `mktemp -d`\n\necho '$(params.workload)'
+      | yq -o json '{\"env\": .spec.build.env}' > env.json\necho '{\"subPath\":\"$(params.sub-path)\"}'
+      > subpath.json\necho '{\"serviceAccountName\":\"$(params.service-account-name)\"}'
+      > sa.json\necho '{\"env\":[{\"name\":\"BP_OCI_SOURCE\", \"value\":\"$(params.revision)\"}]}'
+      > revision.json\n\necho \"[DEBUG] env.json\"\ncat env.json\n\necho \"[DEBUG]
+      subpath.json\"\ncat subpath.json\n\necho \"[DEBUG] sa.json\"\ncat sa.json\n\necho
+      \"[DEBUG] revision.json\"\ncat revision.json\n\n# merge all files together and
+      covert to yaml\nyq eval-all '. as $item ireduce ({}; . *+ $item )' env.json
+      revision.json subpath.json sa.json | yq -P -o yaml > temp.yaml\n\n# add the
+      ytt header to the values\necho -e \"#@data/values\\n---\\n$(cat temp.yaml)\"
+      > values.yaml\n\n# remove any temp files\nrm -f *.json temp.yaml\n\necho \"[DEBUG]
+      values.yaml\"\ncat values.yaml\n\ncat << EOF > template.yaml\n#@ load(\"@ytt:data\",
+      \"data\")\n---\nbuilder:\n  image: $(params.builder-image)\nenv: #@ data.values.env\nresources:
+      {} \nrunImage:\n  image: $(params.run-image)\nserviceAccountName: #@ data.values.serviceAccountName
+      or \"default\"\nsource:\n  registry:\n    image: $(params.source-url)\n  subPath:
+      #@ data.values.subPath\ntags:\n  - $(params.image):latest\nEOF\n\necho \"[DEBUG]
+      template.yaml\"\ncat template.yaml\n\nytt -f template.yaml -f values.yaml >
+      build-spec.yaml\necho \"[DEBUG] build-spec.yaml\"\ncat build-spec.yaml\n\nrm
+      template.yaml values.yaml\n\ncat build-spec.yaml | yq -oj | jq -c > $(results.build-spec.path)"
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: calculate-digest
+spec:
+  params:
+  - description: The url of the image to calculate the digest from
+    name: image
+    type: string
+  results:
+  - description: The calculated digest
+    name: digest
+    type: string
+  stepTemplate:
+    computeResources: {}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsNonRoot: true
+      runAsUser: 1001
+      seccompProfile:
+        type: RuntimeDefault
+  steps:
+  - computeResources: {}
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:748a1c06b3a9ed28b0f9d37077a1ec61f06438cf50a345f0439bb8882ac381f9
+    name: calculate
+    script: |-
+      #!/usr/bin/env bash
+      set -ex
+
+      IMAGE_NAME=$(params.image)
+      printf "${IMAGE_NAME#*sha256:}" > $(results.digest.path)
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: check-builders
+spec:
+  params:
+  - default: default
+    description: The name of the (Cluster)Builder to use
+    name: builder-name
+    type: string
+  - default: clusterbuilder
+    description: The kind of the builder to use (builder or clusterbuilder)
+    name: builder-kind
+    type: string
+  results:
+  - description: The name of the latest builder image to use
+    name: builder-image
+    type: string
+  - description: The name of the latest run image to use
+    name: run-image
+    type: string
+  - description: Any output messages to record
+    name: message
+    type: string
+  stepTemplate:
+    computeResources: {}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsNonRoot: true
+      runAsUser: 1001
+      seccompProfile:
+        type: RuntimeDefault
+  steps:
+  - computeResources: {}
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:748a1c06b3a9ed28b0f9d37077a1ec61f06438cf50a345f0439bb8882ac381f9
+    name: get-latest-builder-images
+    script: |-
+      #!/usr/bin/env bash
+
+      set -euo pipefail
+
+      if [[ "$(params.builder-name)" == "" && "$(params.builder-kind)" != "" ]]; then
+        printf "Cannot provide 'builder-kind' without 'builder-name'" | tee $(results.message.path)
+        exit 1
+      fi
+
+      builderName=$(params.builder-name)
+      if [ "${builderName}" == "" ]; then
+        builderName="default"
+        printf "No builder name provided. Using 'default'" | tee $(results.message.path)
+      fi
+
+      builderKind=$(params.builder-kind)
+      if [ "${builderKind}" == "" ]; then
+        builderKind="clusterbuilder"
+        printf "No builder kind provided. Using 'clusterbuilder'" | tee $(results.message.path)
+      fi
+
+      builderReady=$(kubectl get ${builderKind} ${builderName} -ojsonpath='{.status.conditions[?(@.type=="Ready")].status}')
+      if [ "${builderReady}" != "True" ]; then
+        message=$(kubectl get ${builderKind} ${builderName} -ojsonpath='{.status.conditions[?(@.type=="Ready")].message}')
+        printf "${builderKind} ${builderName} is not ready. message: ${message}" | tee $(results.message.path)
+        exit 1
+      fi
+
+      kubectl get ${builderKind} ${builderName} -ojsonpath='{.status.latestImage}' | tee $(results.builder-image.path)
+      kubectl get ${builderKind} ${builderName} -ojsonpath='{.status.stack.runImage}' | tee $(results.run-image.path)
+
+      printf "Builders resolved" | tee $(results.message.path)
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: source-git-provider
+spec:
+  description: This pipeline stores the head of the git repository into an oci store.
+  params:
+  - description: The name of the workload
+    name: workload-name
+    type: string
+  - description: The git repo URL to clone from.
+    name: git-url
+    type: string
+  - description: The git commit to clone.
+    name: sha
+    type: string
+  results:
+  - description: url of the resulting source object you can use in your chain
+    name: url
+    type: string
+    value: $(tasks.store.results.url)
+  - description: digest of the shipped content sent to 'url'
+    name: digest
+    type: string
+    value: $(tasks.store.results.digest)
+  tasks:
+  - name: fetch
+    params:
+    - name: url
+      value: $(params.git-url)
+    - name: revision
+      value: $(params.sha)
+    taskRef:
+      kind: Task
+      name: source-git-clone
+    workspaces:
+    - name: output
+      workspace: shared-data
+  - name: strip-git
+    runAfter:
+    - fetch
+    taskSpec:
+      metadata: {}
+      spec: null
+      stepTemplate:
+        computeResources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1001
+          seccompProfile:
+            type: RuntimeDefault
+      steps:
+      - computeResources: {}
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:9a28f2eb58182a27fea319f722578b16278ed36c40f7e98c6b0736cfdf8f110a
+        name: rm
+        script: |
+          #!/bin/bash
+
+          set -euo pipefail
+
+          rm -rf $(workspaces.content.path)/.git
+    workspaces:
+    - name: content
+      workspace: shared-data
+  - name: store
+    params:
+    - name: workload-name
+      value: $(params.workload-name)
+    runAfter:
+    - strip-git
+    taskRef:
+      kind: Task
+      name: store-content-oci
+    workspaces:
+    - name: input
+      workspace: shared-data
+  workspaces:
+  - description: |
+      This workspace contains the cloned repo files, so they can be read by the
+      next task.
+    name: shared-data
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: buildpack-build
+spec:
+  description: build application image with kpack
+  params:
+  - description: name of workload used to generate build name
+    name: workload-name
+    type: string
+  - description: url of source registry image
+    name: source-url
+    type: string
+  - description: image to push built application to
+    name: image
+    type: string
+  - description: builder image to run build on
+    name: builder-image
+    type: string
+  - description: base image for built application
+    name: run-image
+    type: string
+  - description: sub directory in source to become root dir for build
+    name: sub-path
+    type: string
+  - description: git revision of source (used for generating correct build metadata)
+    name: revision
+    type: string
+  - description: workload resource
+    name: workload
+    type: string
+  - description: name of service account to use for build
+    name: service-account-name
+    type: string
+  results:
+  - description: url of the built image
+    name: url
+    type: string
+    value: $(tasks.build.results.image)
+  - description: digest of the built image
+    name: digest
+    type: string
+    value: $(tasks.calculate-digest.results.digest)
+  tasks:
+  - name: prepare-build
+    params:
+    - name: source-url
+      value: $(params.source-url)
+    - name: image
+      value: $(params.image)
+    - name: builder-image
+      value: $(params.builder-image)
+    - name: run-image
+      value: $(params.run-image)
+    - name: sub-path
+      value: $(params.sub-path)
+    - name: revision
+      value: $(params.revision)
+    - name: workload
+      value: $(params.workload)
+    - name: service-account-name
+      value: $(params.service-account-name)
+    taskRef:
+      kind: Task
+      name: prepare-build
+  - name: build
+    params:
+    - name: workload-name
+      value: $(params.workload-name)
+    - name: resource
+      value: $(tasks.prepare-build.results.build-spec)
+    runAfter:
+    - prepare-build
+    taskSpec:
+      apiVersion: managed-resource-controller.apps.tanzu.vmware.com/v1alpha1
+      kind: ManagedResource
+      metadata: {}
+      params:
+      - name: workload-name
+        type: string
+      - name: resource
+        type: string
+      spec:
+        healthRule:
+          singleConditionType: Succeeded
+        resourceSpec:
+          apiVersion: kpack.io/v1alpha2
+          kind: Build
+          metadata:
+            generateName: $(params.workload-name)-
+          spec: $(params.resource)
+        resultMappings:
+        - name: image
+          path: status.latestImage
+  - name: calculate-digest
+    params:
+    - name: image
+      value: $(tasks.build.results.image)
+    runAfter:
+    - build
+    taskRef:
+      kind: Task
+      name: calculate-digest
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: conventions
+spec:
+  description: Generates the Pod Conventions for a built image
+  params:
+  - description: The image to pass to the Cartographer Conventions service
+    name: image-url
+    type: string
+  - description: The workload object
+    name: workload
+    type: string
+  - description: The name of the workload
+    name: workload-name
+    type: string
+  results:
+  - description: url of the resulting source object you can use in your chain
+    name: url
+    type: string
+    value: $(tasks.store.results.url)
+  - description: digest of the shipped content sent to 'url'
+    name: digest
+    type: string
+    value: $(tasks.store.results.digest)
+  tasks:
+  - name: prepare
+    params:
+    - name: workload
+      value: $(params.workload)
+    - name: workload-name
+      value: $(params.workload-name)
+    - name: image-url
+      value: $(params.image-url)
+    taskSpec:
+      metadata: {}
+      params:
+      - name: image-url
+        type: string
+      - name: workload
+        type: string
+      - name: workload-name
+        type: string
+      results:
+      - description: the resource to create in the next step
+        name: resource
+        type: string
+      spec: null
+      stepTemplate:
+        computeResources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1001
+          seccompProfile:
+            type: RuntimeDefault
+      steps:
+      - computeResources: {}
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:41e64e2eb9d00faa96926b2629959b3abeb09066c7c92bead7afec1faf03c4ae
+        name: prepare-resource
+        script: |
+          #!/usr/bin/env bash
+
+          set -euo pipefail
+
+          echo '#@data/values' >> /tmp/values.yaml
+          echo '---' >> /tmp/values.yaml
+          echo '$(params.workload)' | yq -P -o yaml '{"env": .spec.env}' >> /tmp/values.yaml
+
+          echo
+          echo "[DEBUG] values.yaml"
+          cat /tmp/values.yaml
+
+          cat << EOF > /tmp/template.yaml
+          #@ load("@ytt:data", "data")
+          ---
+          serviceAccountName: default
+          template:
+            metadata:
+              annotations:
+                developer.conventions/target-containers: workload
+              labels:
+                app.kubernetes.io/component: run
+                app.kubernetes.io/part-of: $(params.workload-name)
+                apps.tanzu.vmware.com/has-tests: "true"
+                apps.tanzu.vmware.com/workload-type: web
+                carto.run/workload-name: $(params.workload-name)
+            spec:
+              containers:
+                - image: $(params.image-url)
+                  name: workload
+                  resources: {}
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    runAsUser: 1001
+                    capabilities:
+                      drop:
+                        - ALL
+                    seccompProfile:
+                      type: "RuntimeDefault"
+                    runAsNonRoot: true
+                  #@ if/end hasattr(data.values, "env"):
+                  env: #@ data.values.env
+              serviceAccountName: default
+          EOF
+
+          echo
+          echo "[DEBUG] template.yaml"
+          cat /tmp/template.yaml
+
+          ytt -f /tmp/template.yaml -f /tmp/values.yaml > /tmp/podintent.yaml
+
+          echo
+          echo "[DEBUG] podintent.yaml"
+          cat /tmp/podintent.yaml
+
+          cat /tmp/podintent.yaml | yq -oj | jq -c > $(results.resource.path)
+  - name: conventions
+    params:
+    - name: image-url
+      value: $(params.image-url)
+    - name: workload-name
+      value: $(params.workload-name)
+    - name: resource
+      value: $(tasks.prepare.results.resource)
+    runAfter:
+    - prepare
+    taskSpec:
+      apiVersion: managed-resource-controller.apps.tanzu.vmware.com/v1alpha1
+      kind: ManagedResource
+      metadata: {}
+      params:
+      - name: image-url
+        type: string
+      - name: workload-name
+        type: string
+      - name: resource
+        type: string
+      spec:
+        healthRule:
+          singleConditionType: ConventionsApplied
+        resourceSpec:
+          apiVersion: conventions.carto.run/v1alpha1
+          kind: PodIntent
+          metadata:
+            generateName: $(params.workload-name)-
+          spec: $(params.resource)
+        resultMappings:
+        - name: template
+          path: status.template
+  - name: format-result
+    params:
+    - name: json
+      value: $(tasks.conventions.results.template)
+    - name: workload-name
+      value: $(params.workload-name)
+    runAfter:
+    - conventions
+    taskSpec:
+      metadata: {}
+      params:
+      - name: json
+        type: string
+      - name: workload-name
+        type: string
+      spec: null
+      stepTemplate:
+        computeResources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1001
+          seccompProfile:
+            type: RuntimeDefault
+      steps:
+      - computeResources: {}
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:41e64e2eb9d00faa96926b2629959b3abeb09066c7c92bead7afec1faf03c4ae
+        name: format-result
+        script: "#!/usr/bin/env bash\n\nset -x\nset -euo pipefail\n\ncd `mktemp -d`\ncat
+          << EOF > values.yaml\n#@data/values\n\n---\nEOF\n\necho '$(params.json)'
+          | yq -P -o yaml >> values.yaml\n\necho \"[DEBUG] values.yaml\"\ncat values.yaml\n\ncat
+          << EOF > template.yaml\n#@ load(\"@ytt:data\", \"data\")\n\n---\ntemplate:
+          \n  spec: #@ data.values.spec\nEOF\n\necho \"[DEBUG] template.yaml\"\ncat
+          template.yaml\n\nytt -f template.yaml -f values.yaml > app-config.yaml\necho
+          \"[DEBUG] app-config.yaml\"\ncat app-config.yaml\n\nrm template.yaml\nrm
+          values.yaml\n\ncp app-config.yaml $(workspaces.shared-data.path)/\n"
+      workspaces:
+      - description: The shared content
+        name: shared-data
+    workspaces:
+    - name: shared-data
+  - name: store
+    params:
+    - name: workload-name
+      value: $(params.workload-name)
+    runAfter:
+    - format-result
+    taskRef:
+      kind: Task
+      name: store-content-oci
+    workspaces:
+    - name: input
+      workspace: shared-data
+  workspaces:
+  - description: |
+      This workspace contains the cloned repo files, so they can be read by the
+      next task.
+    name: shared-data
+---
+apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
+kind: Component
+metadata:
+  name: source-git-provider-1.0.0
+spec:
+  config:
+  - path: spec.source
+    schema:
+      properties:
+        git:
+          description: |
+            Use this object to retrieve source from a git repository.
+            The tag, commit and branch fields are mutually exclusive, use only one.
+          properties:
+            branch:
+              description: A git branch ref to watch for new source
+              example: main
+              type: string
+            commit:
+              description: A git commit sha to use
+              type: string
+            tag:
+              description: A git tag ref to watch for new source
+              example: v1.0.0
+              type: string
+            url:
+              description: The url to the git source repository
+              example: https://github.com/acme/my-workload.git
+              type: string
+          required:
+          - url
+          type: object
+        subPath:
+          default: ""
+          description: The sub path in the bundle to locate source code
+          example: sub-dir
+          type: string
+      required:
+      - git
+      type: object
+  description: Monitors a git repository
+  outputs:
+  - digest: $(pipeline.results.digest)
+    name: source
+    type: source
+    url: $(pipeline.results.url)
+  - digest: $(resumptions.check-source.results.sha)
+    name: git
+    type: git
+    url: $(resumptions.check-source.results.url)
+  pipelineRun:
+    params:
+    - name: workload-name
+      value: $(workload.metadata.name)
+    - name: git-url
+      value: $(workload.spec.source.git.url)
+    - name: sha
+      value: $(resumptions.check-source.results.sha)
+    pipelineRef:
+      name: source-git-provider
+    taskRunSpecs:
+    - pipelineTaskName: fetch
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    - pipelineTaskName: strip-git
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    - pipelineTaskName: store
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    workspaces:
+    - name: shared-data
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+  resumptions:
+  - name: check-source
+    params:
+    - name: git-branch
+      value: $(workload.spec.source.git.branch)
+    - name: git-url
+      value: $(workload.spec.source.git.url)
+    - name: git-commit
+      value: $(workload.spec.source.git.commit)
+    - name: git-tag
+      value: $(workload.spec.source.git.tag)
+    taskRef:
+      name: source-git-check
+    trigger:
+      runAfter: 300s
+---
+apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
+kind: Component
+metadata:
+  name: buildpack-build-1.0.0
+spec:
+  config:
+  - path: spec.registry
+    schema:
+      description: |
+        Registry to use
+      properties:
+        repository:
+          description: The repository to use
+          type: string
+        server:
+          description: The registry address
+          type: string
+      required:
+      - server
+      - repository
+      type: object
+  - path: spec.build
+    schema:
+      description: |
+        Kpack build specification
+      properties:
+        builder:
+          description: Configure workload to use a non-default builder or clusterbuilder
+          properties:
+            kind:
+              default: clusterbuilder
+              description: builder kind
+              example: clusterbuilder
+              type: string
+            name:
+              default: default
+              description: builder name
+              example: tiny-jammy
+              type: string
+          type: object
+        cache:
+          description: |
+            cache options
+          properties:
+            image:
+              default: $(workload.spec.registry.server)/$(workload.spec.registry.repository)/$(workload.metadata.name)-cache
+              description: |
+                cache image to use
+              example: myregistry.com/some-repository/my-cache
+              type: string
+          type: object
+        serviceAccountName:
+          default: default
+          description: |
+            Service account to use
+          type: string
+      type: object
+  - path: spec.source.subPath
+    schema:
+      default: ""
+      description: path inside the source to build from (build has no access to paths
+        above the subPath)
+      example: some-dir
+      type: string
+  - path: spec.build.env
+    schema:
+      items:
+        properties:
+          name:
+            type: string
+          value:
+            type: string
+        required:
+        - name
+        - value
+        type: object
+      type: array
+  description: Builds an app with buildpacks using kpack
+  inputs:
+  - name: source
+    type: source
+  - name: git
+    type: git
+  outputs:
+  - digest: ""
+    name: image
+    type: image
+    url: $(pipeline.results.url)
+  pipelineRun:
+    params:
+    - name: source-url
+      value: $(inputs.source.url)
+    - name: revision
+      value: $(inputs.git.digest)
+    - name: sub-path
+      value: $(workload.spec.source.subPath)
+    - name: workload-name
+      value: $(workload.metadata.name)
+    - name: image
+      value: $(workload.spec.registry.server)/$(workload.spec.registry.repository)/$(workload.metadata.name)
+    - name: run-image
+      value: $(resumptions.check-builders.results.run-image)
+    - name: builder-image
+      value: $(resumptions.check-builders.results.builder-image)
+    - name: service-account-name
+      value: $(workload.spec.build.serviceAccountName)
+    - name: workload
+      value: $(workload)
+    pipelineRef:
+      name: buildpack-build
+    taskRunSpecs:
+    - pipelineTaskName: calculate-digest
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    - pipelineTaskName: prepare-build
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+  resumptions:
+  - name: check-builders
+    params:
+    - name: builderName
+      value: $(workload.spec.build.builder.name)
+    - name: builderKind
+      value: $(workload.spec.build.builder.kind)
+    taskRef:
+      name: check-builders
+    trigger:
+      runAfter: 600s
+---
+apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
+kind: Component
+metadata:
+  name: conventions-1.0.0
+spec:
+  config:
+  - path: spec.env
+    schema:
+      items:
+        properties:
+          name:
+            type: string
+          value:
+            type: string
+        required:
+        - name
+        - value
+        type: object
+      type: array
+  description: Use the Cartographer Conventions service to generate decorated pod
+    template specs
+  inputs:
+  - name: image
+    type: image
+  outputs:
+  - name: conventions
+    type: conventions
+  pipelineRun:
+    params:
+    - name: image-url
+      value: $(inputs.image.url)
+    - name: workload-name
+      value: $(workload.metadata.name)
+    - name: workload
+      value: $(workload)
+    pipelineRef:
+      name: conventions
+    taskRunSpecs:
+    - pipelineTaskName: prepare
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    - pipelineTaskName: format-result
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    - pipelineTaskName: store
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    workspaces:
+    - name: shared-data
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+---
+apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
+kind: SupplyChain
+metadata:
+  creationTimestamp: null
+  name: knativeapp
+spec:
+  defines:
+    group: supplychain.tanzu.vmware.com
+    kind: KnativeApp
+    plural: knativeapps
+    version: v1alpha1
+  description: knativeapps supplychain
+  stages:
+  - componentRef:
+      name: source-git-provider-1.0.0
+    name: source-git-provider
+  - componentRef:
+      name: buildpack-build-1.0.0
+    name: buildpack-build
+  - componentRef:
+      name: conventions-1.0.0
+    name: conventions
+status: {}

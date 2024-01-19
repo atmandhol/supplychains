@@ -1,0 +1,53 @@
+apiVersion: supplychain.tanzu.vmware.com/v1alpha1
+kind: ServerApp
+metadata:
+  name: tanzu-java-web-app
+spec:
+  source:
+    #! Use this object to retrieve source from a git repository.
+    #! The tag, commit and branch fields are mutually exclusive, use only one.
+    #! Required
+    git:
+      #! A git branch ref to watch for new source
+      branch: "main"
+      #! A git commit sha to use
+      # commit: ""
+      #! A git tag ref to watch for new source
+      # tag: "v1.0.0"
+      #! The url to the git source repository
+      #! Required
+      url: "https://github.com/atmandhol/sample-apps/tree/main/source/spring-petclinic"
+    #! path inside the source to build from (build has no access to paths above the subPath)
+    # subPath: ""
+  #! Kpack build specification
+  build:
+    #! cache options
+    cache:
+      #! cache image to use
+      image: "$(workload.spec.registry.server)/$(workload.spec.registry.repository)/$(workload.metadata.name)-cache"
+    # env:
+    #   #! Required
+    # - name: ""
+    #   #! Required
+    #   value: ""
+    #! Service account to use
+    serviceAccountName: "default"
+    #! Configure workload to use a non-default builder or clusterbuilder
+    builder:
+      #! builder kind
+      kind: "clusterbuilder"
+      #! builder name
+      name: "default"
+  # env:
+  #   #! Required
+  # - name: ""
+  #   #! Required
+  #   value: ""
+  #! Registry to use
+  registry:
+    #! The repository to use
+    #! Required
+    repository: "adhol-playground/supplychainv2"
+    #! The registry address
+    #! Required
+    server: "gcr.io"
