@@ -39,7 +39,7 @@ spec:
         secretKeyRef:
           key: repository
           name: oci-store
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:9aac15f5b52b64c7919681b5c2c154f3e17ed8de68b6ff91e5214376e5480da8
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:43e9d6e9b82e7e3e7103584448af4ad12fde0b748612a650480ce21d04579ce0
     name: store
     script: |-
       #!/bin/bash

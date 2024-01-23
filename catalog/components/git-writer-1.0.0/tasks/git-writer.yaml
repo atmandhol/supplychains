@@ -1,0 +1,102 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: git-writer
+spec:
+  description: |-
+    A task that writes a given set of files (provided as a json base64-encoded)
+    to git repository under a specified directory.
+  params:
+  - default: https://github.com/my-org/my-repo
+    description: The git repo url
+    name: url
+    type: string
+  - default: main
+    description: The git branch to read and write
+    name: base-branch
+    type: string
+  - description: The name of the branch to push changes to. If different from base-branch,
+      a PR is created.
+    name: commit-branch
+    type: string
+  - default: example@example.com
+    description: User email address
+    name: git-user-email
+    type: string
+  - default: Example
+    description: User name
+    name: git-user-name
+    type: string
+  - default: New Commit
+    description: Message for the git commit
+    name: git-commit-message
+    type: string
+  - default: config
+    description: Sub directory in which to write
+    name: sub-path
+    type: string
+  - description: |
+      Base64-encoded json map of files to write to registry, for example - eyAiUkVBRE1FLm1kIjogIiMgUmVhZG1lIiB9
+    name: git-files
+    type: string
+  results:
+  - description: The url of the successfully created pull request
+    name: pr-url
+    type: string
+  - description: The number of the successfully created pull request
+    name: pr-number
+    type: string
+  - description: The git sha of the updated branch
+    name: git-sha
+    type: string
+  stepTemplate:
+    computeResources: {}
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsNonRoot: true
+      runAsUser: 1001
+      seccompProfile:
+        type: RuntimeDefault
+  steps:
+  - computeResources: {}
+    env:
+    - name: HOME
+      value: /tekton/home/
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:963810aa5bd790897277b634f3fa7f1c1571a46feac412c7606c26ff8bb4673d
+    name: commit-and-pr
+    script: |
+      #!/bin/bash
+
+      set -euo pipefail
+
+      PACKAGE_YAML_PATH="$(echo $(workspaces.content.path)/*/default/packages/*.yml)"
+      PACKAGE_NAME="$(cat "$PACKAGE_YAML_PATH" | yj| jq -r '.spec.refName')"
+      PACKAGE_VERSION="$(cat "$PACKAGE_YAML_PATH" | yj | jq -r '.spec.version')"
+
+      cd "$(workspaces.gitops-repo.path)"
+      mkdir -p "${PACKAGE_NAME}/packages/"
+
+      cp "${PACKAGE_YAML_PATH}" "${PACKAGE_NAME}/packages/${PACKAGE_VERSION}.yaml"
+
+      COMMIT_BRANCH="$(params.commit-branch)"
+
+      scm pr create \
+        --commit-title "Updating application ${PACKAGE_NAME} to ${PACKAGE_VERSION}" \
+        --path $(credentials.path)/.git-credentials \
+        --pr-title "Updating application ${PACKAGE_NAME}" \
+        --base-branch $(params.base-branch) \
+        --commit-branch "${COMMIT_BRANCH}" \
+        --git-email "$(params.git-user-email)" \
+        --git-user "$(params.git-user-name)" \
+        --output-git-sha $(results.git-sha.path) \
+        --output-pr-number $(results.pr-number.path) \
+        --output-pr-url $(results.pr-url.path)
+  workspaces:
+  - description: the gitops repo to write the config update to
+    name: gitops-repo
+  - description: The store for the gitops PR content
+    name: content

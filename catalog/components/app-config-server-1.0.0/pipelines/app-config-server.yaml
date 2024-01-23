@@ -57,7 +57,7 @@ spec:
       value: $(params.config-url)
     taskRef:
       kind: Task
-      name: alm-fetch-tgz-content-oci
+      name: fetch-tgz-content-oci
     workspaces:
     - name: store
       workspace: shared-data
@@ -117,7 +117,7 @@ spec:
             type: RuntimeDefault
       steps:
       - computeResources: {}
-        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:0f5d58758f9366e2551cbcd931080fe8cc173de3075ba9cdec34bb991ad83195
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:a30a3755f5e38cf23595959e0df48cae878e27263327e6e30b584b5bd8145480
         name: create-template
         script: |
           #!/bin/bash
@@ -212,7 +212,7 @@ spec:
     - server-template
     taskRef:
       kind: Task
-      name: alm-store-content-oci
+      name: store-content-oci
     workspaces:
     - name: input
       workspace: shared-data
@@ -250,7 +250,7 @@ spec:
             type: RuntimeDefault
       steps:
       - computeResources: {}
-        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:0f5d58758f9366e2551cbcd931080fe8cc173de3075ba9cdec34bb991ad83195
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:a30a3755f5e38cf23595959e0df48cae878e27263327e6e30b584b5bd8145480
         name: write-file
         script: |
           #!/bin/bash
@@ -266,8 +266,10 @@ spec:
             #@overlay/match missing_ok=True
             replicas: #@ data.values.replicas
 
+            #@ if data.values.strategy != "":
             #@overlay/match missing_ok=True
             strategy: #@ data.values.strategy
+            #@ end
 
             #@overlay/match missing_ok=True
             template:
@@ -277,20 +279,30 @@ spec:
                 containers:
                   #@overlay/match by=overlay.index(0)
                   - name: workload
+                    #@ if data.values.livenessProbe != "":
                     #@overlay/match missing_ok=True
                     livenessProbe: #@ data.values.livenessProbe
+                    #@ end
 
+                    #@ if data.values.readinessProbe != "":
                     #@overlay/match missing_ok=True
                     readinessProbe: #@ data.values.readinessProbe
+                    #@ end
 
+                    #@ if data.values.resources != "":
                     #@overlay/match missing_ok=True
                     resources: #@ data.values.resources
+                    #@ end
 
+                    #@ if data.values.securityContext != "":
                     #@overlay/match missing_ok=True
                     securityContext: #@ data.values.securityContext
+                    #@ end
 
+                    #@ if data.values.env != "":
                     #@overlay/match missing_ok=True
                     env: #@ data.values.env
+                    #@ end
 
           #@ if data.values.http_route != None:
           ---
@@ -357,7 +369,7 @@ spec:
           securityContext=$(echo "${deployment}"| jq .securityContext)
 
           cat <<EOF > $(workspaces.content.path)/server-template-values.yaml
-          #@data/values-schema
+          #@data/values
           ---
           #@schema/title "Workload name"
           #@schema/example "tanzu-java-web-app"
@@ -371,42 +383,48 @@ spec:
           $(if [ "${livenessProbe}" == "null" ]; then
           echo "livenessProbe: \"\""
           else
-          echo "livenessProbe: \"$( echo ${livenessProbe} | yq eval -P --indent 2 -oy -)\""
+          echo "livenessProbe:"
+          echo ${livenessProbe} | yq eval -P --indent 2 -oy - | sed 's/^/  /'
           fi)
 
           #@schema/title "ReadinessProbe"
           $(if [ "${readinessProbe}" == "null" ]; then
           echo "readinessProbe: \"\""
           else
-          echo "readinessProbe: \"$( echo ${readinessProbe} | yq eval -P --indent 2 -oy -)\""
+          echo "readinessProbe:"
+          echo ${readinessProbe} | yq eval -P --indent 2 -oy - | sed 's/^/  /'
           fi)
 
           #@schema/title "Strategy"
           $(if [ "${strategy}" == "null" ]; then
           echo "strategy: \"\""
           else
-          echo "strategy: \"$( echo ${strategy} | yq eval -P --indent 2 -oy -)\""
+          echo "strategy:"
+          echo ${strategy} | yq eval -P --indent 2 -oy - | sed 's/^/  /'
           fi)
 
           #@schema/title "Resources"
           $(if [ "${resources}" == "null" ]; then
           echo "resources: \"\""
           else
-          echo "resources: \"$( echo ${resources} | yq eval -P --indent 2 -oy -)\""
+          echo -e "resources:"
+          echo ${resources} | yq eval -P --indent 2 -oy - | sed 's/^/  /'
           fi)
 
           #@schema/title "Env"
           $(if [ "${env}" == "null" ]; then
           echo "env: \"\""
           else
-          echo "env: \"$( echo ${env} | yq eval -P --indent 2 -oy -)\""
+          echo "env:"
+          echo ${env} | yq eval -P --indent 2 -oy - | sed 's/^/  /'
           fi)
 
           #@schema/title "SecurityContext"
           $(if [ "${securityContext}" == "null" ]; then
           echo "securityContext: \"\""
           else
-          echo "securityContext: \"$( echo ${securityContext} | yq eval -P --indent 2 -oy -)\""
+          echo "securityContext:"
+          echo ${securityContext} | yq eval -P --indent 2 -oy - | sed 's/^/  /'
           fi)
 
           #@schema/title "Port"
@@ -440,7 +458,7 @@ spec:
     - add-overlays
     taskRef:
       kind: Task
-      name: alm-store-content-oci
+      name: store-content-oci
     workspaces:
     - name: input
       workspace: overlay-data

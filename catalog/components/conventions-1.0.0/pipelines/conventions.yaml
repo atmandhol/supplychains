@@ -60,7 +60,7 @@ spec:
             type: RuntimeDefault
       steps:
       - computeResources: {}
-        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:41e64e2eb9d00faa96926b2629959b3abeb09066c7c92bead7afec1faf03c4ae
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:91f58ddf7f8c41e913f5a4ff1d42b244c442b3a7fefdfc974669b9cab4a7caf9
         name: prepare-resource
         script: |
           #!/usr/bin/env bash
@@ -181,7 +181,7 @@ spec:
             type: RuntimeDefault
       steps:
       - computeResources: {}
-        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:41e64e2eb9d00faa96926b2629959b3abeb09066c7c92bead7afec1faf03c4ae
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:91f58ddf7f8c41e913f5a4ff1d42b244c442b3a7fefdfc974669b9cab4a7caf9
         name: format-result
         script: "#!/usr/bin/env bash\n\nset -x\nset -euo pipefail\n\ncd `mktemp -d`\ncat
           << EOF > values.yaml\n#@data/values\n\n---\nEOF\n\necho '$(params.json)'

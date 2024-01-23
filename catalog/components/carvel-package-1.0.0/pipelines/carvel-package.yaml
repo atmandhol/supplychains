@@ -60,7 +60,7 @@ spec:
       value: $(params.config-url)
     taskRef:
       kind: Task
-      name: alm-fetch-tgz-content-oci
+      name: fetch-tgz-content-oci
     workspaces:
     - name: store
       workspace: shared-data
@@ -70,7 +70,7 @@ spec:
       value: $(params.ytt-url)
     taskRef:
       kind: Task
-      name: alm-fetch-tgz-content-oci
+      name: fetch-tgz-content-oci
     workspaces:
     - name: store
       workspace: shared-data
@@ -111,7 +111,7 @@ spec:
     - carvel-package
     taskRef:
       kind: Task
-      name: alm-store-content-oci
+      name: store-content-oci
     workspaces:
     - name: input
       workspace: shared-data
