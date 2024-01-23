@@ -1,0 +1,119 @@
+---
+apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
+kind: Component
+metadata:
+  name: carvel-package-1.0.0
+spec:
+  config:
+  - path: spec.registry
+    schema:
+      description: |
+        Configuration for the registry to use
+      properties:
+        repository:
+          description: The name of the repository
+          example: my-repository
+          type: string
+        server:
+          description: The name of the registry server, e.g. docker.io
+          example: docker.io
+          type: string
+      required:
+      - server
+      - repository
+      type: object
+  - path: spec.carvel
+    schema:
+      description: |
+        Configuration for the generated carvel package
+      properties:
+        caCertData:
+          description: |
+            PEM encoded certificate data for the image registry where the files will be pushed to.
+          type: string
+        iaasAuthEnabled:
+          description: Enable the use of IAAS based authentication for imgpkg
+          example: false
+          type: boolean
+        openapiv3Enabled:
+          description: Generate openapiv3 definition for carvel package
+          example: true
+          type: boolean
+        packageName:
+          description: The name of the carvel package
+          example: mypackage.acme.com
+          type: string
+        secretName:
+          description: Secret that provides customized values to the package installation's
+            templating steps
+          example: mypackage-values-secret
+          type: string
+        serviceAccountName:
+          description: Service account that gives kapp-controller privileges to create
+            resources in the namespace
+          example: sa-workload
+          type: string
+      required:
+      - packageName
+      type: object
+  - path: spec.gitops
+    schema:
+      description: |
+        Configuration for GitOps.
+      properties:
+        env_name:
+          default: default
+          description: Environment name to use as directory for Carvel Package + CarvelPackageInstall.
+          example: staging
+          type: string
+      type: object
+  description: Generates a carvel package from a config bundle
+  inputs:
+  - name: oci-yaml-files
+    type: oci-yaml-files
+  - name: oci-ytt-files
+    type: oci-ytt-files
+  outputs:
+  - name: package
+    type: package
+  pipelineRun:
+    params:
+    - name: workload-name
+      value: $(workload.metadata.name)
+    - name: gitops-env-name
+      value: $(workload.spec.gitops.env_name)
+    - name: config-url
+      value: $(inputs.oci-yaml-files.url)
+    - name: ytt-url
+      value: $(inputs.oci-ytt-files.url)
+    - name: imgpkg-bundle-url
+      value: $(workload.spec.registry.server)/$(workload.spec.registry.repository)/$(workload.metadata.name)-bundle
+    - name: imgpkg-iaas-auth-enabled
+      value: $(workload.spec.carvel.iaasAuthEnabled)
+    - name: imgpkg-ca-cert-data
+      value: $(workload.spec.carvel.caCertData)
+    - name: carvel-package-name
+      value: $(workload.spec.carvel.packageName)
+    - name: carvel-package-secret
+      value: $(workload.spec.carvel.secretName)
+    - name: carvel-package-openapiv3-enabled
+      value: $(workload.spec.carvel.openapiv3Enabled)
+    - name: carvel-package-service-account
+      value: $(workload.spec.carvel.serviceAccountName)
+    pipelineRef:
+      name: carvel-package
+    taskRunTemplate:
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    workspaces:
+    - name: shared-data
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

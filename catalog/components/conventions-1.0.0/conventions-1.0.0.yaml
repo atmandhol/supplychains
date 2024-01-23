@@ -1,0 +1,66 @@
+---
+apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
+kind: Component
+metadata:
+  name: conventions-1.0.0
+spec:
+  config:
+  - path: spec.env
+    schema:
+      items:
+        properties:
+          name:
+            type: string
+          value:
+            type: string
+        required:
+        - name
+        - value
+        type: object
+      type: array
+  description: Use the Cartographer Conventions service to generate decorated pod
+    template specs
+  inputs:
+  - name: image
+    type: image
+  outputs:
+  - name: conventions
+    type: conventions
+  pipelineRun:
+    params:
+    - name: image-url
+      value: $(inputs.image.url)
+    - name: workload-name
+      value: $(workload.metadata.name)
+    - name: workload
+      value: $(workload)
+    pipelineRef:
+      name: conventions
+    taskRunSpecs:
+    - pipelineTaskName: prepare
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    - pipelineTaskName: format-result
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    - pipelineTaskName: store
+      podTemplate:
+        securityContext:
+          fsGroup: 1000
+          runAsGroup: 1000
+          runAsUser: 1001
+    workspaces:
+    - name: shared-data
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

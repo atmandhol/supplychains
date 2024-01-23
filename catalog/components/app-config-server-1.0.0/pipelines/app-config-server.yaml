@@ -1,0 +1,455 @@
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: app-config-server
+spec:
+  description: Package your project into a carvel package
+  params:
+  - description: Location of the config bundle
+    name: config-url
+    type: string
+  - description: Name of the workload
+    name: workload-name
+    type: string
+  - description: workload labels
+    name: workload-labels
+    type: string
+  - description: Annotations of the workload
+    name: workload-annotations
+    type: string
+  - description: ports for the service
+    name: ports
+    type: string
+  - description: configuration of the Deployment resource
+    name: deployment
+    type: string
+  - description: configuration of the Service resource
+    name: service
+    type: string
+  - description: configuration of the HTTPRoute resource
+    name: http-route
+    type: string
+  - description: configuration of the Ingress resource
+    name: ingress
+    type: string
+  results:
+  - description: url of the resulting source object you can use in your chain
+    name: url
+    type: string
+    value: $(tasks.store.results.url)
+  - description: digest of the shipped content sent to 'url'
+    name: digest
+    type: string
+    value: $(tasks.store.results.digest)
+  - description: url of the resulting source object you can use in your chain
+    name: url-overlay
+    type: string
+    value: $(tasks.store-overlay.results.url)
+  - description: digest of the shipped content sent to 'url'
+    name: digest-overlay
+    type: string
+    value: $(tasks.store-overlay.results.digest)
+  tasks:
+  - name: fetch-conventions
+    params:
+    - name: url
+      value: $(params.config-url)
+    taskRef:
+      kind: Task
+      name: alm-fetch-tgz-content-oci
+    workspaces:
+    - name: store
+      workspace: shared-data
+  - name: server-template
+    params:
+    - name: workload-name
+      value: $(params.workload-name)
+    - name: workload-labels
+      value: $(params.workload-labels)
+    - name: workload-annotations
+      value: $(params.workload-annotations)
+    - name: ports
+      value: $(params.ports)
+    - name: deployment
+      value: $(params.deployment)
+    - name: service
+      value: $(params.service)
+    - name: http-route
+      value: $(params.http-route)
+    - name: ingress
+      value: $(params.ingress)
+    runAfter:
+    - fetch-conventions
+    taskSpec:
+      metadata: {}
+      params:
+      - name: workload-name
+        type: string
+      - name: workload-labels
+        type: string
+      - name: workload-annotations
+        type: string
+      - name: ports
+        type: string
+      - name: deployment
+        type: string
+      - name: service
+        type: string
+      - name: http-route
+        type: string
+      - name: ingress
+        type: string
+      results:
+      - name: template
+        type: string
+      spec: null
+      stepTemplate:
+        computeResources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1001
+          seccompProfile:
+            type: RuntimeDefault
+      steps:
+      - computeResources: {}
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:0f5d58758f9366e2551cbcd931080fe8cc173de3075ba9cdec34bb991ad83195
+        name: create-template
+        script: |
+          #!/bin/bash
+
+          set -euo pipefail
+
+          ls -al $(workspaces.content.path)
+          conv=$(cat $(workspaces.content.path)/app-config.yaml)
+
+          if [[ '$(params.http-route)' == \$\(* ]]; then
+            httproute=""
+          else
+            httproute='$(params.http-route)'
+          fi
+
+          if [[ '$(params.ingress)' == \$\(* ]]; then
+            ingress=""
+          else
+            ingress='$(params.ingress)'
+          fi
+
+          if [[ '$(params.deployment)' == \$\(* ]]; then
+            deployment=""
+          else
+            deployment='$(params.deployment)'
+          fi
+
+          if [[ '$(params.service)' == \$\(* ]]; then
+            service=""
+          else
+            service='$(params.service)'
+          fi
+
+          if [[ '$(params.ports)' == \$\(* ]]; then
+            ports=""
+          else
+            ports='$(params.ports)'
+          fi
+
+          cd `mktemp -d`
+
+          if [[ '$(params.workload-name)' == \$\(* ]]; then
+            workload_name=""
+          else
+            workload_name='$(params.workload-name)'
+          fi
+
+          if [[ '$(params.workload-labels)' == \$\(* ]]; then
+            workload_labels=""
+          else
+            workload_labels='$(params.workload-labels)'
+          fi
+
+          if [[ '$(params.workload-annotations)' == \$\(* ]]; then
+            workload_annotations=""
+          else
+            workload_annotations='$(params.workload-annotations)'
+          fi
+
+          cd `mktemp -d`
+
+          create_template \
+            -workload-name="${workload_name}" \
+            -conventions="${conv}" \
+            -ports="${ports}" \
+            -deployment="${deployment}" \
+            -service="${service}" \
+            -http-route="${httproute}" \
+            -ingress="${ingress}" \
+            -workload-labels="${workload_labels}" \
+            -workload-annotations="${workload_annotations}"
+          if [ $? -ne 0 ]; then
+            echo "create template failed"
+            tee error.txt
+            exit 1
+          fi
+
+          cat appconfig.yaml
+
+          rm $(workspaces.content.path)/app-config.yaml
+
+          cat appconfig.yaml > $(results.template.path)
+          cp  appconfig.yaml $(workspaces.content.path)
+    workspaces:
+    - name: content
+      workspace: shared-data
+  - name: store
+    params:
+    - name: workload-name
+      value: $(params.workload-name)
+    runAfter:
+    - server-template
+    taskRef:
+      kind: Task
+      name: alm-store-content-oci
+    workspaces:
+    - name: input
+      workspace: shared-data
+  - name: add-overlays
+    params:
+    - name: workload-name
+      value: $(params.workload-name)
+    - name: deployment
+      value: $(params.deployment)
+    runAfter:
+    - store
+    taskSpec:
+      metadata: {}
+      params:
+      - name: deployment
+        type: string
+      - name: workload-name
+        type: string
+      results:
+      - name: overlays
+        type: string
+      - name: values
+        type: string
+      spec: null
+      stepTemplate:
+        computeResources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1001
+          seccompProfile:
+            type: RuntimeDefault
+      steps:
+      - computeResources: {}
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:0f5d58758f9366e2551cbcd931080fe8cc173de3075ba9cdec34bb991ad83195
+        name: write-file
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+
+          cat <<EOF > $(workspaces.content.path)/server-template-overlays.yaml
+          #@ load("@ytt:overlay", "overlay")
+          #@ load("@ytt:data", "data")
+
+          #@overlay/match by=overlay.subset({"apiVersion":"apps/v1", "kind": "Deployment"})
+          ---
+          spec:
+            #@overlay/match missing_ok=True
+            replicas: #@ data.values.replicas
+
+            #@overlay/match missing_ok=True
+            strategy: #@ data.values.strategy
+
+            #@overlay/match missing_ok=True
+            template:
+              #@overlay/match missing_ok=True
+              spec:
+                #@overlay/match missing_ok=True
+                containers:
+                  #@overlay/match by=overlay.index(0)
+                  - name: workload
+                    #@overlay/match missing_ok=True
+                    livenessProbe: #@ data.values.livenessProbe
+
+                    #@overlay/match missing_ok=True
+                    readinessProbe: #@ data.values.readinessProbe
+
+                    #@overlay/match missing_ok=True
+                    resources: #@ data.values.resources
+
+                    #@overlay/match missing_ok=True
+                    securityContext: #@ data.values.securityContext
+
+                    #@overlay/match missing_ok=True
+                    env: #@ data.values.env
+
+          #@ if data.values.http_route != None:
+          ---
+          apiVersion: gateway.networking.k8s.io/v1beta1
+          kind: HTTPRoute
+          metadata:
+            name: #@ data.values.workload_name + "-route"
+          spec:
+            parentRefs:
+            #@ for/end gateway in data.values.http_route.gateways:
+            - group: gateway.networking.k8s.io
+              kind: Gateway
+              name: #@ gateway.name
+              sectionName: #@ gateway.protocol + "-" + data.values.workload_name
+            rules:
+            - backendRefs:
+              - name: #@ data.values.workload_name
+                port: #@ data.values.port
+          #@ elif data.values.hostname != "":
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: #@ data.values.workload_name
+            annotations:
+              cert-manager.io/cluster-issuer:  #@ data.values.cluster_issuer
+              ingress.kubernetes.io/force-ssl-redirect: "true"
+              kubernetes.io/ingress.class: contour
+              kapp.k14s.io/change-rule: "upsert after upserting Services"
+            labels:
+              app.kubernetes.io/component: "run"
+              carto.run/workload-name:  #@ data.values.workload_name
+          spec:
+            tls:
+              - secretName: #@ data.values.workload_name
+                hosts:
+                - #@ data.values.hostname
+            rules:
+            - host: #@ data.values.hostname
+              http:
+                paths:
+                - pathType: Prefix
+                  path: /
+                  backend:
+                    service:
+                      name: #@ data.values.workload_name
+                      port:
+                        number: #@ data.values.port
+          #@ end
+          EOF
+
+          echo '$(params.deployment)'
+          if [[ '$(params.deployment)' == \$\(* ]]; then
+            deployment=""
+          else
+            deployment='$(params.deployment)'
+          fi
+
+          livenessProbe=$(echo "${deployment}"| jq .livenessProbe)
+          readinessProbe=$(echo "${deployment}"| jq .readinessProbe)
+          strategy=$(echo "${deployment}"| jq .strategy)
+          resources=$(echo "${deployment}"| jq .resources)
+          env=$(echo "${deployment}"| jq .env)
+          securityContext=$(echo "${deployment}"| jq .securityContext)
+
+          cat <<EOF > $(workspaces.content.path)/server-template-values.yaml
+          #@data/values-schema
+          ---
+          #@schema/title "Workload name"
+          #@schema/example "tanzu-java-web-app"
+          #@schema/validation min_len=1
+          workload_name: $(params.workload-name)
+
+          #@schema/title "Replicas"
+          replicas: 1
+
+          #@schema/title "LivenessProbe"
+          $(if [ "${livenessProbe}" == "null" ]; then
+          echo "livenessProbe: \"\""
+          else
+          echo "livenessProbe: \"$( echo ${livenessProbe} | yq eval -P --indent 2 -oy -)\""
+          fi)
+
+          #@schema/title "ReadinessProbe"
+          $(if [ "${readinessProbe}" == "null" ]; then
+          echo "readinessProbe: \"\""
+          else
+          echo "readinessProbe: \"$( echo ${readinessProbe} | yq eval -P --indent 2 -oy -)\""
+          fi)
+
+          #@schema/title "Strategy"
+          $(if [ "${strategy}" == "null" ]; then
+          echo "strategy: \"\""
+          else
+          echo "strategy: \"$( echo ${strategy} | yq eval -P --indent 2 -oy -)\""
+          fi)
+
+          #@schema/title "Resources"
+          $(if [ "${resources}" == "null" ]; then
+          echo "resources: \"\""
+          else
+          echo "resources: \"$( echo ${resources} | yq eval -P --indent 2 -oy -)\""
+          fi)
+
+          #@schema/title "Env"
+          $(if [ "${env}" == "null" ]; then
+          echo "env: \"\""
+          else
+          echo "env: \"$( echo ${env} | yq eval -P --indent 2 -oy -)\""
+          fi)
+
+          #@schema/title "SecurityContext"
+          $(if [ "${securityContext}" == "null" ]; then
+          echo "securityContext: \"\""
+          else
+          echo "securityContext: \"$( echo ${securityContext} | yq eval -P --indent 2 -oy -)\""
+          fi)
+
+          #@schema/title "Port"
+          port: 8080
+
+          #@schema/title "Hostname"
+          #@schema/example "app.tanzu.vmware.com"
+          hostname: ""
+
+          #@schema/title "Cluster Issuer"
+          cluster_issuer: "tap-ingress-selfsigned"
+
+          #@schema/nullable
+          http_route:
+              #@schema/default [{"protocol": "https", "name": "default-gateway"}]
+              gateways:
+              - protocol: ""
+                name: ""
+          EOF
+
+          echo "$(workspaces.content.path)/server-template-overlays.yaml" | tee $(results.overlays.path)
+          echo "$(workspaces.content.path)/server-template-values.yaml" | tee $(results.values.path)
+    workspaces:
+    - name: content
+      workspace: overlay-data
+  - name: store-overlay
+    params:
+    - name: workload-name
+      value: $(params.workload-name)
+    runAfter:
+    - add-overlays
+    taskRef:
+      kind: Task
+      name: alm-store-content-oci
+    workspaces:
+    - name: input
+      workspace: overlay-data
+  workspaces:
+  - description: |
+      This workspace contains the previous component files, so they can be read by the
+      next task.
+    name: shared-data
+  - description: |
+      This workspace contains the generated overlay files, so they can be read by the
+      next task.
+    name: overlay-data

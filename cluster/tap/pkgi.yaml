@@ -35,7 +35,7 @@ stringData:
     shared:
       ingress_domain: 127.0.0.1
     ceip_policy_disclosed: true
-    profile: full
+    profile: authoring
     buildservice:
       kp_default_repository: (@= data.values.registry_server @)/(@= data.values.registry_path @)
       kp_default_repository_secret:

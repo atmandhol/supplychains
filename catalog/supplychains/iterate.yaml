@@ -1,0 +1,30 @@
+---
+apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
+kind: SupplyChain
+metadata:
+  creationTimestamp: null
+  name: serverapp
+spec:
+  defines:
+    group: supplychain.tanzu
+    kind: ServerApp
+    plural: serverapps
+    version: v1alpha1
+  description: Build a Server type app from git source, package it as a carvel package and store it in your GitOps repository.
+  stages:
+  - componentRef:
+      name: source-git-provider-1.0.0
+    name: source-git-provider
+  - componentRef:
+      name: buildpack-build-1.0.0
+    name: buildpack-build
+  - componentRef:
+      name: conventions-1.0.0
+    name: conventions
+  - componentRef:
+      name: app-config-server-1.0.0
+    name: app-config-server
+  - componentRef:
+      name: carvel-package-1.0.0
+    name: carvel-package
+status: {}
