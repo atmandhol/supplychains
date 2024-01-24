@@ -1,8 +1,155 @@
-apiVersion: supplychain.tanzu.vmware.com/v1alpha1
-kind: ServerApp
+apiVersion: supplychain.tanzu/v1alpha1
+kind: Build
 metadata:
-  name: tanzu-java-web-app
+  name: spring-petclinic
 spec:
+  # env:
+  #   #! Required
+  # - value: ""
+  #   #! Required
+  #   name: ""
+  #! Configuration for the http Route to be generated
+  # httpRoute:
+  #   #! To be used in the httpRoute parentRef
+  #   gatewayName: ""
+  #   #! To be used in the httpRoute parentRef
+  #   gatewayProtocol: ""
+  #   #! The name of the httpRoute resource. defaults to workload if empty
+  #   name: ""
+  #   #! To be used in the httpRoute BackendRef
+  #   port:
+  #! Kpack build specification
+  build:
+    #! Configure workload to use a non-default builder or clusterbuilder
+    builder:
+      #! builder kind
+      kind: "clusterbuilder"
+      #! builder name
+      name: "default"
+    #! cache options
+    # cache:
+    #   #! cache image to use
+    #   image: "$(workload.spec.registry.server)/$(workload.spec.registry.repository)/$(workload.metadata.name)-cache"
+    # env:
+    #   #! Required
+    # - name: ""
+    #   #! Required
+    #   value: ""
+    #! Service account to use
+    serviceAccountName: "default"
+  #! Configuration for the deployment to be generated
+  deployment:
+    #! Compute Resources required by the app container.
+    # resources:
+    #   #! max limits for CPU and memory
+    #   limits:
+    #     cpu: ""
+    #     memory: ""
+    #   #! min limits for CPU and memory
+    #   requests:
+    #     cpu: ""
+    #     memory: ""
+    # #! pod-level security attributes and common container settings
+    # securityContext:
+    #   runAsUser: ""
+    # #! DeploymentStrategy describes how to replace existing pods with new ones.
+    # strategy:
+    #   rollingUpdate:
+    #     maxSurge: ""
+    #     maxUnavailable: ""
+    #   type: ""
+    # env:
+    # - name: ""
+    #   value: ""
+    # #! If specified, all readiness gates will be evaluated for pod liveness.
+    # livenessProbe:
+    #   grpc:
+    #     port:
+    #     service: ""
+    #   initialDelaySeconds:
+    #   tcpSocket:
+    #     host: ""
+    #     port: ""
+    #   exec:
+    #   failureThreshold:
+    #   httpGet:
+    #     host: ""
+    #     httpHeaders:
+    #     - name: ""
+    #       value: ""
+    #     path: ""
+    #     port: ""
+    #     scheme: ""
+    #   periodSeconds:
+    #   successThreshold:
+    #   terminationGracePeriodSeconds:
+    #   timeoutSeconds:
+    # #! The name of the deployment resource. defaults to workload if empty
+    # name: ""
+    # #! If specified, all readiness gates will be evaluated for pod readiness.
+    # readinessProbe:
+    #   periodSeconds:
+    #   successThreshold:
+    #   terminationGracePeriodSeconds:
+    #   failureThreshold:
+    #   grpc:
+    #     port:
+    #     service: ""
+    #   initialDelaySeconds:
+    #   tcpSocket:
+    #     host: ""
+    #     port: ""
+    #   timeoutSeconds:
+    #   exec:
+    #   httpGet:
+    #     host: ""
+    #     httpHeaders:
+    #     - name: ""
+    #       value: ""
+    #     path: ""
+    #     port: ""
+    #     scheme: ""
+    #! Number of desired pods.
+    #! Required
+    replicas: 2
+  gitOps:
+    #! the subpath in the gitops repository to add the package configuration to
+    subPath: "package_root"
+    #! the repository to push the pull request to
+    #! Required
+    url: "https://github.com/atmandhol/tap-gitops"
+  #! Configuration for the ingress to be generated
+  # ingress:
+  #   #! hostname is the fully qualified domain name of a network host, as defined by RFC 3986
+  #   hostname: ""
+  #   #! The name of the ingress resource. defaults to workload if empty
+  #   name: ""
+  #   #! provides information about the ports exposed by this LoadBalancer
+  #   port:
+  #   #! secretName is the name of the secret used to terminate TLS traffic
+  #   tlsSecretName: ""
+  #   #! the value to used in the annotation cert-manager.io/cluster-issuer
+  #   clusterIssuer: ""
+  # #! Configuration for the registry to use
+  registry:
+    #! The repository to use
+    #! Required
+    repository: "adhol-playground/supplychainv2"
+    #! The registry address
+    #! Required
+    server: "gcr.io"
+  #! Configuration for the service to be generated
+  # service:
+  #   #! The list of ports that are exposed by this service.
+  #   ports:
+  #     #! Required
+  #   - containerport: ""
+  #     #! Required
+  #     name: ""
+  #     #! Required
+  #     port:
+  #   #! The name of the ksvc resource. defaults to workload if empty
+  #   name: ""
   source:
     #! Use this object to retrieve source from a git repository.
     #! The tag, commit and branch fields are mutually exclusive, use only one.
@@ -19,35 +166,18 @@ spec:
       url: "https://github.com/atmandhol/sample-apps/tree/main/source/spring-petclinic"
     #! path inside the source to build from (build has no access to paths above the subPath)
     # subPath: ""
-  #! Kpack build specification
-  build:
-    #! cache options
-    cache:
-      #! cache image to use
-      image: "$(workload.spec.registry.server)/$(workload.spec.registry.repository)/$(workload.metadata.name)-cache"
-    # env:
-    #   #! Required
-    # - name: ""
-    #   #! Required
-    #   value: ""
-    #! Service account to use
-    serviceAccountName: "default"
-    #! Configure workload to use a non-default builder or clusterbuilder
-    builder:
-      #! builder kind
-      kind: "clusterbuilder"
-      #! builder name
-      name: "default"
-  # env:
-  #   #! Required
-  # - name: ""
-  #   #! Required
-  #   value: ""
-  #! Registry to use
-  registry:
-    #! The repository to use
+  #! Configuration for the generated carvel package
+  carvel:
+    #! PEM encoded certificate data for the image registry where the files will be pushed to.
+    caCertData: ""
+    #! Enable the use of IAAS based authentication for imgpkg
+    iaasAuthEnabled: false
+    #! Generate openapiv3 definition for carvel package
+    openapiv3Enabled: true
+    #! The name of the carvel package
     #! Required
-    repository: "adhol-playground/supplychainv2"
-    #! The registry address
-    #! Required
-    server: "gcr.io"
+    packageName: "spring-petclinic.tanzu.dev"
+    #! Secret that provides customized values to the package installation's templating steps
+    secretName: "package-values"
+    #! Service account that gives kapp-controller privileges to create resources in the namespace
+    serviceAccountName: "workload-installer"
