@@ -8,17 +8,30 @@ SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := install
 
 .PHONY: install
-install: require-kapp
-	kapp deploy -a supplychain.tanzu -f components -f supplychains -y --dangerous-allow-empty-list-of-resources
+install: require-kapp ## Installs the supply chains in the group to your active context.
+	kapp deploy -a components.supplychain.tanzu -f components -y --dangerous-allow-empty-list-of-resources
+	kapp deploy -a supplychain.tanzu -f supplychains -y --dangerous-allow-empty-list-of-resources
+
+.PHONY: uninstall
+uninstall: require-kapp ## Uninstalls the supply chains in this group from your active context.
+	kapp delete -a supplychain.tanzu -y
+	kapp delete -a components.supplychain.tanzu -y
 
 .PHONY: package
 # TODO: Add commands here
-package: require-kctrl
+package: require-kctrl ## Creates a carvel package containing the supply chains and copies it to the Image registry mentioned in the $PACKAGE_REPO env variable.
 
 .PHONY: install-package
 # TODO: Add commands here
 install-package: package
 
+# =====================================================================================
+# Helpers
+# =====================================================================================
+
 .PHONY: require-%
 require-%: ## Checks if the required command exists on the command line
 	@if ! command -v $* 1> /dev/null 2>&1; then echo "$* CLI not installed or found in PATH"; exit 1; fi
+
+help: ## Print help for each make target.
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
