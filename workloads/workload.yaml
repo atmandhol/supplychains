@@ -163,9 +163,9 @@ spec:
       # tag: "v1.0.0"
       #! The url to the git source repository
       #! Required
-      url: "https://github.com/atmandhol/sample-apps/tree/main/source/spring-petclinic"
+      url: "https://github.com/atmandhol/sample-apps.git"
     #! path inside the source to build from (build has no access to paths above the subPath)
-    # subPath: ""
+    subPath: "source/spring-petclinic"
   #! Configuration for the generated carvel package
   carvel:
     #! PEM encoded certificate data for the image registry where the files will be pushed to.
