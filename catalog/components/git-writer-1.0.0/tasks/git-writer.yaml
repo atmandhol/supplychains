@@ -32,7 +32,7 @@ spec:
     description: Message for the git commit
     name: git-commit-message
     type: string
-  - default: config
+  - default: ""
     description: Sub directory in which to write
     name: sub-path
     type: string
@@ -66,30 +66,28 @@ spec:
     env:
     - name: HOME
       value: /tekton/home/
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:963810aa5bd790897277b634f3fa7f1c1571a46feac412c7606c26ff8bb4673d
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:a624b04dfb9b0703e9d55c865f04ea115a9494414b9f0ce71fb0ad5733159dca
     name: commit-and-pr
     script: |
       #!/bin/bash
 
       set -euo pipefail
 
-      PACKAGE_YAML_PATH="$(echo $(workspaces.content.path)/*/default/packages/*.yml)"
-      PACKAGE_NAME="$(cat "$PACKAGE_YAML_PATH" | yj| jq -r '.spec.refName')"
-      PACKAGE_VERSION="$(cat "$PACKAGE_YAML_PATH" | yj | jq -r '.spec.version')"
-
       cd "$(workspaces.gitops-repo.path)"
-      mkdir -p "${PACKAGE_NAME}/packages/"
-
-      cp "${PACKAGE_YAML_PATH}" "${PACKAGE_NAME}/packages/${PACKAGE_VERSION}.yaml"
-
-      COMMIT_BRANCH="$(params.commit-branch)"
+      DEST=./
+      if [ -n "$(params.sub-path)" ]; then
+        mkdir -p "$(params.sub-path)"
+        DEST="./$(params.sub-path)/"
+      fi
+      cp -r "$(workspaces.content.path)/"* "$DEST"
+      UPDATES="$(ls --ignore=lost+found -m $(workspaces.content.path))"
 
       scm pr create \
-        --commit-title "Updating application ${PACKAGE_NAME} to ${PACKAGE_VERSION}" \
+        --commit-title "Updating ${UPDATES}" \
         --path $(credentials.path)/.git-credentials \
-        --pr-title "Updating application ${PACKAGE_NAME}" \
+        --pr-title "Updating ${UPDATES}" \
         --base-branch $(params.base-branch) \
-        --commit-branch "${COMMIT_BRANCH}" \
+        --commit-branch "$(params.commit-branch)" \
         --git-email "$(params.git-user-email)" \
         --git-user "$(params.git-user-name)" \
         --output-git-sha $(results.git-sha.path) \

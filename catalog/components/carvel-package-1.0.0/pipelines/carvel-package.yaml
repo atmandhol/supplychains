@@ -9,10 +9,6 @@ spec:
   - description: Name of of the workload
     name: workload-name
     type: string
-  - default: default
-    description: Environment name to use as directory for Carvel Package + CarvelPackageInstall.
-    name: gitops-env-name
-    type: string
   - description: Location of the config bundle
     name: config-url
     type: string
@@ -78,8 +74,6 @@ spec:
     params:
     - name: workload-name
       value: $(params.workload-name)
-    - name: gitops-env-name
-      value: $(params.gitops-env-name)
     - name: imgpkg-bundle-url
       value: $(params.imgpkg-bundle-url)
     - name: imgpkg-iaas-auth-enabled

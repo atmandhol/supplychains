@@ -31,4 +31,3 @@ spec:
   - componentRef:
       name: git-writer-1.0.0
     name: git-writer
-status: {}

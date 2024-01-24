@@ -84,7 +84,7 @@ spec:
     - name: git-user-email
       value: $(params.git-email)
     - name: sub-path
-      value: config/$(params.workload-name)
+      value: ""
     - name: git-files
       value: $(params.git-files)
     - name: workload-name

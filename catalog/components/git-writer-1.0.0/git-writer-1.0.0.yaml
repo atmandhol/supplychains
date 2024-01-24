@@ -8,6 +8,11 @@ spec:
   - path: spec.gitOps
     schema:
       properties:
+        subPath:
+          description: the subpath in the gitops repository to add the package configuration
+            to
+          example: my-project/spaces/my-app-staging
+          type: string
         url:
           description: the repository to push the pull request to
           example: https://github.com/my-org/my-gitops-repo
@@ -43,7 +48,7 @@ spec:
     - name: git-commit-message
       value: New Commit
     - name: sub-path
-      value: config/$(params.workload-name)
+      value: $(workload.spec.gitOps.subPath)
     - name: git-files
       value: ""
     pipelineRef:

@@ -7,11 +7,13 @@ SHELL := /usr/bin/env bash
 
 .DEFAULT_GOAL := install
 
+## kapp deploy app names are templated by tanzu supplychain init command.
 .PHONY: install
 install: require-kapp ## Installs the supply chains in the group to your active context.
 	kapp deploy -a components.supplychain.tanzu -f components -y --dangerous-allow-empty-list-of-resources
 	kapp deploy -a supplychain.tanzu -f supplychains -y --dangerous-allow-empty-list-of-resources
 
+## kapp delete app names are templated by tanzu supplychain init command.
 .PHONY: uninstall
 uninstall: require-kapp ## Uninstalls the supply chains in this group from your active context.
 	kapp delete -a supplychain.tanzu -y
