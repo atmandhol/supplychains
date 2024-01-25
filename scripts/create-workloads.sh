@@ -2,7 +2,8 @@
 set -eo pipefail
 CURRENT=$PWD
 
-export KUBECONFIG=kubeconfig.yaml
+export KUBECONFIG=../kubeconfig.yaml
 
 # Create workloads
-kapp deploy -a workloads -f workloads/ -y
+cd workloads
+tanzu workload apply -y
