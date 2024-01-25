@@ -134,10 +134,10 @@ spec:
   registry:
     #! The repository to use
     #! Required
-    repository: "adhol-playground/supplychainv2"
+    repository: "adhol-playground/supplychain/workload"
     #! The registry address
     #! Required
-    server: "gcr.io"
+    server: "us-east4-docker.pkg.dev"
   #! Configuration for the service to be generated
   # service:
   #   #! The list of ports that are exposed by this service.
@@ -168,12 +168,12 @@ spec:
     subPath: "source/spring-petclinic"
   #! Configuration for the generated carvel package
   carvel:
-    #! PEM encoded certificate data for the image registry where the files will be pushed to.
-    caCertData: ""
-    #! Enable the use of IAAS based authentication for imgpkg
-    iaasAuthEnabled: false
-    #! Generate openapiv3 definition for carvel package
-    openapiv3Enabled: true
+    # #! PEM encoded certificate data for the image registry where the files will be pushed to.
+    # caCertData: ""
+    # #! Enable the use of IAAS based authentication for imgpkg
+    # iaasAuthEnabled: false
+    # #! Generate openapiv3 definition for carvel package
+    # openapiv3Enabled: true
     #! The name of the carvel package
     #! Required
     packageName: "spring-petclinic.tanzu.dev"

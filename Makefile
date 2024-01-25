@@ -27,7 +27,7 @@ clean: check gcp-down
 .PHONY: gcp-up
 gcp-up: require-gcloud
 	KUBECONFIG=kubeconfig.yaml gcloud container clusters create --project ${GCP_PROJECT} "downstream-${USER}" --region ${GCP_REGION} \
-		--no-enable-basic-auth --cluster-version "1.27" --release-channel "stable" --machine-type "e2-standard-4" \
+		--no-enable-basic-auth --cluster-version "1.27" --release-channel "stable" --machine-type "e2-standard-8" \
 		--image-type "COS_CONTAINERD" --disk-type "pd-standard" --disk-size "100" --metadata disable-legacy-endpoints=true \
 		--scopes "https://www.googleapis.com/auth/cloud-platform" --max-pods-per-node "110" --num-nodes "1" \
 		--logging=SYSTEM,WORKLOAD --monitoring=SYSTEM --enable-ip-alias --no-enable-intra-node-visibility \

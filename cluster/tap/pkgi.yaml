@@ -90,6 +90,7 @@ stringData:
     - local-source-proxy.apps.tanzu.vmware.com
     - cnrs.tanzu.vmware.com
     - tap-gui.tanzu.vmware.com
+    - controller.source.apps.tanzu.vmware.com
     tap_telemetry:
       installed_for_vmware_internal_use: "true"
     tekton_pipelines:
