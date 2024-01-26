@@ -11,15 +11,6 @@ kapp deploy -a secretgen-controller -n kube-system -f https://github.com/vmware-
 # Install TAP and Supplychain Packages
 kubectl create ns tap-install || true
 
-ytt -f cluster/ \
-    -v tap_version=$TAP_VERSION \
-    -v tzusername=$TANZUNET_USERNAME \
-    -v tzpassword=$TANZUNET_PASSWORD \
-    -v username=$REGISTRY_USERNAME \
-    -v password="$REGISTRY_PASSWORD" \
-    -v git_username=$GIT_USERNAME \
-    -v git_password=$GIT_PASSWORD \
-    -v registry_server=$REGISTRY_SERVER \
-    -v registry_path=$REGISTRY_PATH | kapp deploy -a tap-installation -c -f- --yes
+ytt -f cluster/ --data-values-file values.yaml | kapp deploy -a tap-installation -c -f- --yes
 
 kubectl label ns default apps.tanzu.vmware.com/tap-ns=""

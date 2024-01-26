@@ -1,7 +1,7 @@
 .vscode/
 gke_gcloud_auth_plugin_cache
-.envrc
 tap-values.yaml
 kubeconfig.yaml
 base/bin/
 .DS_Store
+values.yaml

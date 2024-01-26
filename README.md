@@ -30,13 +30,16 @@ brew install kapp
 ```
 
 ### Step 2: Set required Environment variable
-Copy the `sample.envrc` file and name it `.envrc` which is gitignored. Set the appropriate values in the `.envrc` file.
+Update the `.envrc` file and set the GCP details.
 
 Source the file using:
 ```bash
 source .envrc
 ```
 or use a utility like [direnv](https://direnv.net/) to do this automatically for you.
+
+### Step 3: Set required credentials
+Copy the `sample-values.yaml` to `values.yaml` (which is .gitignored) and fill it with Tanzu Network, TAP and Git details.
 
 
 ## Getting started

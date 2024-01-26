@@ -1,0 +1,23 @@
+#@data/values
+
+#! Tanzu Network Credentials
+tzusername=
+tzpassword=
+
+#! TAP Details
+tap_version=
+
+#! Registry Details
+#! This is the registry for build service and other components that write OCI images
+#! just the server and no trailing slash
+registry_server=
+
+#! just the path and no slash at the beginning
+registry_path=
+username=
+password=
+
+#! Git settings (for GitOps)
+git_username=
+#! PAT if github.com
+git_password=
