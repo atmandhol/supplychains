@@ -11,6 +11,6 @@ kapp deploy -a secretgen-controller -n kube-system -f https://github.com/vmware-
 # Install TAP and Supplychain Packages
 kubectl create ns tap-install || true
 
-ytt -f cluster/ --data-values-file values.yaml | kapp deploy -a tap-installation -c -f- --yes
+ytt -f cluster --data-values-file values.yaml | kapp deploy -a tap-installation -c -f- --yes
 
 kubectl label ns default apps.tanzu.vmware.com/tap-ns=""
