@@ -2,7 +2,7 @@
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
-  name: gitops-git-clone
+  name: carvel-package-git-clone
 spec:
   description: |-
     These Tasks are Git tasks to work with repositories used by other tasks in your Pipeline.
@@ -142,7 +142,7 @@ spec:
       value: $(workspaces.ssl-ca-directory.bound)
     - name: WORKSPACE_SSL_CA_DIRECTORY_PATH
       value: $(workspaces.ssl-ca-directory.path)
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:aaa40150b24f74f6aece19e9f71df96989c4de263a6d24edd7b62774e1f85cb2
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:ac07b7e1f0a84a398cec7f7af85d72f5b2a8550f2bb2c7c96ad5e2e29e914cc8
     name: clone
     script: |
       #!/usr/bin/env sh

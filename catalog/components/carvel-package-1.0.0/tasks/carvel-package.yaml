@@ -29,15 +29,14 @@ spec:
       templating steps
     name: carvel-package-secret
     type: string
-  - default: "false"
-    description: If set, generate openapiv3 definition for Carvel Package. If the
-      size of the Carvel Package definition exceeds 4KB, the Supply Chain will fail.
-    name: carvel-package-openapiv3-enabled
-    type: string
   - default: default
     description: Service account that gives kapp-controller privileges to create resources
       in the namespace
     name: carvel-package-service-account
+    type: string
+  - default: ""
+    description: the sub-path into the git repository in which to write the configuration.
+    name: gitops-subpath
     type: string
   results:
   - description: Carvel distributable packages that enables users to install on a
@@ -68,7 +67,7 @@ spec:
       value: /tekton/home/.docker/
     - name: HOME
       value: /tekton/home/
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:22256db7e61310524785e39cfea62608ea0bda27ea2d40b9bd263c05912b67ee
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:119f7b448012434dd421ada0adcbec08809505b49c945edd0c9852a01e0bdac2
     name: build-imgpkg-bundle
     script: |-
       #!/bin/bash
@@ -100,7 +99,7 @@ spec:
         values_filename=worker-template-values.yaml
       fi
 
-      if [ "$(params.carvel-package-openapiv3-enabled)" == "true" ] && [ ! -z "$values_filename" ]; then
+      if [ ! -z "$values_filename" ]; then
         ytt -f "$values_filename" --data-values-schema-inspect -o openapi-v3 > "$(workspaces.content.path)/schema-openapi.yml"
       fi
 
@@ -138,7 +137,7 @@ spec:
       value: /tekton/home/.docker/
     - name: HOME
       value: /tekton/home/
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:22256db7e61310524785e39cfea62608ea0bda27ea2d40b9bd263c05912b67ee
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:119f7b448012434dd421ada0adcbec08809505b49c945edd0c9852a01e0bdac2
     name: package-version
     script: |-
       #!/bin/bash
@@ -179,7 +178,7 @@ spec:
       value: /tekton/home/.docker/
     - name: HOME
       value: /tekton/home/
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:22256db7e61310524785e39cfea62608ea0bda27ea2d40b9bd263c05912b67ee
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:119f7b448012434dd421ada0adcbec08809505b49c945edd0c9852a01e0bdac2
     name: build-carvel-package
     script: |-
       #!/bin/bash
@@ -236,12 +235,35 @@ spec:
         #@ end
       EOF
 
-      if [ "$(params.carvel-package-openapiv3-enabled)" == "true" ] && [ -s $(workspaces.content.path)/schema-openapi.yml ]; then
-        ytt -f ./package-template.yaml --data-value openapi="$(cat $(workspaces.content.path)/schema-openapi.yml)" | tee package.yaml
+      if [ -s $(workspaces.content.path)/schema-openapi.yml ]; then
+        ytt -f ./package-template.yaml --data-value openapi="$(cat $(workspaces.content.path)/schema-openapi.yml)" | tee "${CARVEL_PACKAGE_FILENAME}"
       else
-        ytt -f ./package-template.yaml | tee package.yaml
+        ytt -f ./package-template.yaml | tee "${CARVEL_PACKAGE_FILENAME}"
       fi
       rm -f $(workspaces.content.path)/schema-openapi.yml
+
+      #####################################
+      #           build secret            #
+      #####################################
+
+      SECRET_NAME="$(params.workload-name)-secret"
+      if [[ -n "$(params.carvel-package-secret)" ]]; then
+        SECRET_NAME="$(params.carvel-package-secret)"
+      fi
+
+      CARVEL_SECRET_FILENAME="secret.yaml"
+
+      cat <<EOF > ./${CARVEL_SECRET_FILENAME}
+      ---
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: ${SECRET_NAME}
+      stringData:
+        values.yml: |
+          ---
+          # workload_name: example
+      EOF
 
       #####################################
       #    build carvel package install   #
@@ -252,11 +274,6 @@ spec:
       SA_NAME="default"
       if [[ -n "$(params.carvel-package-service-account)" ]]; then
         SA_NAME="$(params.carvel-package-service-account)"
-      fi
-
-      SECRET_NAME="$(params.workload-name)-secret"
-      if [[ -n "$(params.carvel-package-secret)" ]]; then
-        SECRET_NAME="$(params.carvel-package-secret)"
       fi
 
       cat <<EOF > ./${CARVEL_PKGI_FILENAME}
@@ -276,16 +293,28 @@ spec:
             name: ${SECRET_NAME}
       EOF
 
-      gitops_subpath="$(workspaces.content.path)/$(params.carvel-package-name)"
-      mkdir -p "$gitops_subpath/packages"
-      cp package.yaml "$gitops_subpath/packages/${CARVEL_PACKAGE_FILENAME}"
-      cp packageinstall.yaml "$gitops_subpath/${CARVEL_PKGI_FILENAME}"
+      output_path="$(workspaces.content.path)/$(params.carvel-package-name)"
+      mkdir -p "${output_path}/packages"
+      cp "${CARVEL_PACKAGE_FILENAME}" "${output_path}/packages/"
+      cp "${CARVEL_PKGI_FILENAME}" "${output_path}"
 
-      echo "[DEBUG] "$gitops_subpath/packages/${CARVEL_PACKAGE_FILENAME}""
-      cat "$gitops_subpath/packages/${CARVEL_PACKAGE_FILENAME}"
+      if ! test -f "$(workspaces.content.path)/gitops/$(params.gitops-subpath)/$(params.carvel-package-name)/secret.yaml"; then
+        echo "writing secret, no secret exists in GitOps repo"
+        cp "${CARVEL_SECRET_FILENAME}" "${output_path}"
 
-      echo "[DEBUG] "$gitops_subpath/${CARVEL_PKGI_FILENAME}""
-      cat "$gitops_subpath/${CARVEL_PKGI_FILENAME}"
+        echo "[DEBUG] ${output_path}/${CARVEL_SECRET_FILENAME}"
+        cat "${output_path}/${CARVEL_SECRET_FILENAME}"
+      else
+        echo "skipping secret writing, secret already exists in GitOps repo"
+      fi
+
+      rm -rf "$(workspaces.content.path)/gitops"
+
+      echo "[DEBUG] ${output_path}/packages/${CARVEL_PACKAGE_FILENAME}"
+      cat "${output_path}/packages/${CARVEL_PACKAGE_FILENAME}"
+
+      echo "[DEBUG] ${output_path}/${CARVEL_PKGI_FILENAME}"
+      cat "${output_path}/${CARVEL_PKGI_FILENAME}"
 
       echo "[DEBUG] $(workspaces.content.path)"
       ls -al "$(workspaces.content.path)"

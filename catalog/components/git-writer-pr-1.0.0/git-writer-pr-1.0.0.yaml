@@ -2,15 +2,20 @@
 apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
 kind: Component
 metadata:
-  name: git-writer-1.0.0
+  name: git-writer-pr-1.0.0
 spec:
   config:
   - path: spec.gitOps
     schema:
       properties:
+        baseBranch:
+          default: main
+          description: the base branch to create PRs against
+          type: string
         subPath:
-          description: the subpath in the gitops repository to add the package configuration
-            to
+          default: ""
+          description: the relative path within the gitops repository to add the package
+            configuration to.
           example: my-project/spaces/my-app-staging
           type: string
         url:
@@ -20,7 +25,7 @@ spec:
       required:
       - url
       type: object
-  description: Writes carvel package config to a gitops repository
+  description: Writes carvel package config to a gitops repository and opens a PR
   inputs:
   - name: package
     type: package
@@ -40,7 +45,7 @@ spec:
     - name: commit-branch
       value: update-$(workload.metadata.name)
     - name: base-branch
-      value: main
+      value: $(workload.spec.gitOps.baseBranch)
     - name: git-user
       value: Cartographer v2
     - name: git-email

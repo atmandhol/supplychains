@@ -1,7 +1,8 @@
+---
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
-  name: source-git-clone
+  name: gitops-git-clone
 spec:
   description: |-
     These Tasks are Git tasks to work with repositories used by other tasks in your Pipeline.
@@ -141,7 +142,7 @@ spec:
       value: $(workspaces.ssl-ca-directory.bound)
     - name: WORKSPACE_SSL_CA_DIRECTORY_PATH
       value: $(workspaces.ssl-ca-directory.path)
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:f553bda7c5d86fce44ae6380bb728d7cc665c9aba2d4b9933de1eac3b3223ecb
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:671ba95ffdbe2f77a83a92d5ed80251c0efdaa3b21f2df52d9124f6558b851c1
     name: clone
     script: |
       #!/usr/bin/env sh

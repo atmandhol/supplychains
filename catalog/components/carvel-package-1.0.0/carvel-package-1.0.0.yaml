@@ -35,10 +35,6 @@ spec:
           description: Enable the use of IAAS based authentication for imgpkg
           example: false
           type: boolean
-        openapiv3Enabled:
-          description: Generate openapiv3 definition for carvel package
-          example: true
-          type: boolean
         packageName:
           description: The name of the carvel package
           example: mypackage.acme.com
@@ -55,6 +51,24 @@ spec:
           type: string
       required:
       - packageName
+      type: object
+  - path: spec.gitOps
+    schema:
+      properties:
+        branch:
+          default: main
+          description: the branch to commit changes to
+          type: string
+        subPath:
+          default: ""
+          description: the relative path within the gitops repository to add the package
+            configuration to.
+          example: my-project/spaces/my-app-staging
+          type: string
+        url:
+          description: the repository to push the pull request to
+          example: https://github.com/my-org/my-gitops-repo
+          type: string
       type: object
   description: Generates a carvel package from a config bundle
   inputs:
@@ -83,10 +97,14 @@ spec:
       value: $(workload.spec.carvel.packageName)
     - name: carvel-package-secret
       value: $(workload.spec.carvel.secretName)
-    - name: carvel-package-openapiv3-enabled
-      value: $(workload.spec.carvel.openapiv3Enabled)
     - name: carvel-package-service-account
       value: $(workload.spec.carvel.serviceAccountName)
+    - name: gitops-url
+      value: $(workload.spec.gitOps.url)
+    - name: gitops-subpath
+      value: $(workload.spec.gitOps.subPath)
+    - name: gitops-branch
+      value: $(workload.spec.gitOps.branch)
     pipelineRef:
       name: carvel-package
     taskRunTemplate:

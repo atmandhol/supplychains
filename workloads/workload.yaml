@@ -1,5 +1,5 @@
-apiVersion: supplychain.tanzu/v1alpha1
-kind: Build
+apiVersion: tanzu.vmware.com/v1alpha1
+kind: App
 metadata:
   name: spring-petclinic
 spec:
@@ -58,9 +58,9 @@ spec:
     #     maxSurge: ""
     #     maxUnavailable: ""
     #   type: ""
-    # env:
-    # - name: ""
-    #   value: ""
+    env:
+    - name: "foo"
+      value: "bary"
     # #! If specified, all readiness gates will be evaluated for pod liveness.
     # livenessProbe:
     #   grpc:
@@ -113,6 +113,8 @@ spec:
     #! Required
     replicas: 2
   gitOps:
+    #! the base branch to create PRs against
+    baseBranch: "main"
     #! the subpath in the gitops repository to add the package configuration to
     subPath: "package_root"
     #! the repository to push the pull request to

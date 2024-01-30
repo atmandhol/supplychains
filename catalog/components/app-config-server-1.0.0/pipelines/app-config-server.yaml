@@ -117,7 +117,7 @@ spec:
             type: RuntimeDefault
       steps:
       - computeResources: {}
-        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:85dd4ba6d178c081d2ec4f1a6cc50ff7eb50717c267adfc86dd61537fa9f702c
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:c22fe37da3fd7d084ea92727342169fce1d2e00a9b7621292575a83b502eafbf
         name: create-template
         script: |
           #!/bin/bash
@@ -250,7 +250,7 @@ spec:
             type: RuntimeDefault
       steps:
       - computeResources: {}
-        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:85dd4ba6d178c081d2ec4f1a6cc50ff7eb50717c267adfc86dd61537fa9f702c
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:c22fe37da3fd7d084ea92727342169fce1d2e00a9b7621292575a83b502eafbf
         name: write-file
         script: |
           #!/bin/bash

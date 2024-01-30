@@ -56,7 +56,7 @@ spec:
             type: RuntimeDefault
       steps:
       - computeResources: {}
-        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:0a00f4248dc1897f6f8d04c15f7f8b795c541af82adf9accf9f5189f5f755dc5
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:f553bda7c5d86fce44ae6380bb728d7cc665c9aba2d4b9933de1eac3b3223ecb
         name: rm
         script: |
           #!/bin/bash

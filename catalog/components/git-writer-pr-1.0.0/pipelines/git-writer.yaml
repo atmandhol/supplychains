@@ -61,6 +61,8 @@ spec:
     params:
     - name: url
       value: $(params.gitops-url)
+    - name: revision
+      value: $(params.base-branch)
     taskRef:
       kind: Task
       name: gitops-git-clone

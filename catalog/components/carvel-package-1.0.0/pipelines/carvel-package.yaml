@@ -32,13 +32,21 @@ spec:
       templating steps
     name: carvel-package-secret
     type: string
-  - description: If set, generate openapiv3 definition for Carvel Package. If the
-      size of the Carvel Package definition exceeds 4KB, the Supply Chain will fail.
-    name: carvel-package-openapiv3-enabled
-    type: string
   - description: Service account that gives kapp-controller privileges to create resources
       in the namespace
     name: carvel-package-service-account
+    type: string
+  - default: ""
+    description: the gitOps repository to write the configuration to.
+    name: gitops-url
+    type: string
+  - default: ""
+    description: the sub-path into the git repository in which to write the configuration.
+    name: gitops-subpath
+    type: string
+  - default: main
+    description: the base branch to clone.
+    name: gitops-branch
     type: string
   results:
   - description: url of the resulting source object you can use in your chain
@@ -70,6 +78,25 @@ spec:
     workspaces:
     - name: store
       workspace: shared-data
+  - name: clone-gitops-repo
+    params:
+    - name: url
+      value: $(params.gitops-url)
+    - name: subdirectory
+      value: gitops
+    - name: revision
+      value: $(params.gitops-branch)
+    taskRef:
+      kind: Task
+      name: carvel-package-git-clone
+    when:
+    - input: $(params.gitops-url)
+      operator: notin
+      values:
+      - ""
+    workspaces:
+    - name: output
+      workspace: shared-data
   - name: carvel-package
     params:
     - name: workload-name
@@ -82,15 +109,16 @@ spec:
       value: $(params.imgpkg-ca-cert-data)
     - name: carvel-package-name
       value: $(params.carvel-package-name)
-    - name: carvel-package-openapiv3-enabled
-      value: $(params.carvel-package-openapiv3-enabled)
     - name: carvel-package-service-account
       value: $(params.carvel-package-service-account)
     - name: carvel-package-secret
       value: $(params.carvel-package-secret)
+    - name: gitops-subpath
+      value: $(params.gitops-subpath)
     runAfter:
     - fetch-config
     - fetch-ytt
+    - clone-gitops-repo
     taskRef:
       kind: Task
       name: carvel-package

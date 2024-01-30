@@ -66,7 +66,7 @@ spec:
     env:
     - name: HOME
       value: /tekton/home/
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:a624b04dfb9b0703e9d55c865f04ea115a9494414b9f0ce71fb0ad5733159dca
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:011e7e17ac7e9bba27cac888941610a0f5fe09b6ae55383a38047ee4c5a2f8d5
     name: commit-and-pr
     script: |
       #!/bin/bash
@@ -93,6 +93,10 @@ spec:
         --output-git-sha $(results.git-sha.path) \
         --output-pr-number $(results.pr-number.path) \
         --output-pr-url $(results.pr-url.path)
+
+      if [ ! -f "$(results.pr-url.path)" ]; then
+        echo "$(params.url)" > "$(results.pr-url.path)"
+      fi
   workspaces:
   - description: the gitops repo to write the config update to
     name: gitops-repo
