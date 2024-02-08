@@ -3,12 +3,12 @@ apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
 kind: SupplyChain
 metadata:
   creationTimestamp: null
-  name: app
+  name: app-build
 spec:
   defines:
     group: tanzu.vmware.com
-    kind: App
-    plural: apps
+    kind: AppBuild
+    plural: appbuilds
     version: v1alpha1
   description: Build a Server type app from git source, package it as a carvel package
     and store it in your GitOps repository.

@@ -27,7 +27,7 @@ spec:
     type: string
   - description: Secret that provides customized values to the package installation's
       templating steps
-    name: carvel-package-secret
+    name: carvel-package-values-secret-name
     type: string
   - default: default
     description: Service account that gives kapp-controller privileges to create resources
@@ -44,8 +44,6 @@ spec:
     name: carvel-package
     type: string
   - name: imgpkg-bundle
-    type: string
-  - name: carvel-package-filename
     type: string
   - name: carvel-package-version
     type: string
@@ -67,7 +65,7 @@ spec:
       value: /tekton/home/.docker/
     - name: HOME
       value: /tekton/home/
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:119f7b448012434dd421ada0adcbec08809505b49c945edd0c9852a01e0bdac2
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:a58be755f878a11e9886ab5ff683b98071013b831dcbfe9863bbc7ef656654ca
     name: build-imgpkg-bundle
     script: |-
       #!/bin/bash
@@ -137,7 +135,7 @@ spec:
       value: /tekton/home/.docker/
     - name: HOME
       value: /tekton/home/
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:119f7b448012434dd421ada0adcbec08809505b49c945edd0c9852a01e0bdac2
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:a58be755f878a11e9886ab5ff683b98071013b831dcbfe9863bbc7ef656654ca
     name: package-version
     script: |-
       #!/bin/bash
@@ -170,7 +168,6 @@ spec:
         CARVEL_PACKAGE_VERSION="${current_date}+build.${git_commit}"
       fi
 
-      echo "${current_date}.yml" > $(results.carvel-package-filename.path)
       echo -n "$CARVEL_PACKAGE_VERSION" > $(results.carvel-package-version.path)
   - computeResources: {}
     env:
@@ -178,7 +175,7 @@ spec:
       value: /tekton/home/.docker/
     - name: HOME
       value: /tekton/home/
-    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:119f7b448012434dd421ada0adcbec08809505b49c945edd0c9852a01e0bdac2
+    image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:a58be755f878a11e9886ab5ff683b98071013b831dcbfe9863bbc7ef656654ca
     name: build-carvel-package
     script: |-
       #!/bin/bash
@@ -199,7 +196,7 @@ spec:
 
       CARVEL_PACKAGE_VERSION="$(cat $(results.carvel-package-version.path))"
       IMGPKG_BUNDLE="$(cat $(results.imgpkg-bundle.path))"
-      CARVEL_PACKAGE_FILENAME="$(cat $(results.carvel-package-filename.path))"
+      CARVEL_PACKAGE_FILENAME="package.yaml"
 
       cat <<EOF > ./package-template.yaml
       #@ load("@ytt:data", "data")
@@ -222,7 +219,7 @@ spec:
             template:
             - ytt:
                 paths:
-                - "-"
+                - "."
             - kbld:
                 paths:
                 - ".imgpkg/images.yml"
@@ -243,22 +240,22 @@ spec:
       rm -f $(workspaces.content.path)/schema-openapi.yml
 
       #####################################
-      #           build secret            #
+      #         build values secret       #
       #####################################
 
-      SECRET_NAME="$(params.workload-name)-secret"
-      if [[ -n "$(params.carvel-package-secret)" ]]; then
-        SECRET_NAME="$(params.carvel-package-secret)"
+      VALUES_SECRET_NAME="$(params.workload-name)-values"
+      if [[ -n "$(params.carvel-package-values-secret-name)" ]]; then
+        VALUES_SECRET_NAME="$(params.carvel-package-values-secret-name)"
       fi
 
-      CARVEL_SECRET_FILENAME="secret.yaml"
+      CARVEL_SECRET_FILENAME="values.yaml"
 
       cat <<EOF > ./${CARVEL_SECRET_FILENAME}
       ---
       apiVersion: v1
       kind: Secret
       metadata:
-        name: ${SECRET_NAME}
+        name: ${VALUES_SECRET_NAME}
       stringData:
         values.yml: |
           ---
@@ -290,28 +287,28 @@ spec:
         serviceAccountName: ${SA_NAME}
         values:
         - secretRef:
-            name: ${SECRET_NAME}
+            name: ${VALUES_SECRET_NAME}
       EOF
 
       output_path="$(workspaces.content.path)/$(params.carvel-package-name)"
-      mkdir -p "${output_path}/packages"
-      cp "${CARVEL_PACKAGE_FILENAME}" "${output_path}/packages/"
+      mkdir "${output_path}"
+      cp "${CARVEL_PACKAGE_FILENAME}" "${output_path}"
       cp "${CARVEL_PKGI_FILENAME}" "${output_path}"
 
-      if ! test -f "$(workspaces.content.path)/gitops/$(params.gitops-subpath)/$(params.carvel-package-name)/secret.yaml"; then
-        echo "writing secret, no secret exists in GitOps repo"
+      if ! test -f "$(workspaces.content.path)/gitops/$(params.gitops-subpath)/$(params.carvel-package-name)/${CARVEL_SECRET_FILENAME}"; then
+        echo "writing values file, no values file exists in GitOps repo"
         cp "${CARVEL_SECRET_FILENAME}" "${output_path}"
 
         echo "[DEBUG] ${output_path}/${CARVEL_SECRET_FILENAME}"
         cat "${output_path}/${CARVEL_SECRET_FILENAME}"
       else
-        echo "skipping secret writing, secret already exists in GitOps repo"
+        echo "skipping values file writing, values file already exists in GitOps repo"
       fi
 
       rm -rf "$(workspaces.content.path)/gitops"
 
-      echo "[DEBUG] ${output_path}/packages/${CARVEL_PACKAGE_FILENAME}"
-      cat "${output_path}/packages/${CARVEL_PACKAGE_FILENAME}"
+      echo "[DEBUG] ${output_path}/${CARVEL_PACKAGE_FILENAME}"
+      cat "${output_path}/${CARVEL_PACKAGE_FILENAME}"
 
       echo "[DEBUG] ${output_path}/${CARVEL_PKGI_FILENAME}"
       cat "${output_path}/${CARVEL_PKGI_FILENAME}"
@@ -319,7 +316,6 @@ spec:
       echo "[DEBUG] $(workspaces.content.path)"
       ls -al "$(workspaces.content.path)"
       ls -al "$(workspaces.content.path)/$(params.carvel-package-name)"
-      ls -al "$(workspaces.content.path)/$(params.carvel-package-name)/packages"
   workspaces:
   - description: The folder where we write the carvel package version and imgpkg bundle
       path

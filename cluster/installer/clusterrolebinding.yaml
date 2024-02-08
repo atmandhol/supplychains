@@ -13,6 +13,12 @@ subjects:
   - kind: ServiceAccount
     name: default
     namespace: default
+  - kind: ServiceAccount
+    name: default
+    namespace: dev
+  - kind: ServiceAccount
+    name: default
+    namespace: supplychain
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -28,3 +34,9 @@ subjects:
   - kind: ServiceAccount
     name: default
     namespace: default
+  - kind: ServiceAccount
+    name: default
+    namespace: dev
+  - kind: ServiceAccount
+    name: default
+    namespace: supplychain

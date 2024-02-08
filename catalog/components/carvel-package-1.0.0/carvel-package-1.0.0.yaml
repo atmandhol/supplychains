@@ -32,25 +32,34 @@ spec:
             PEM encoded certificate data for the image registry where the files will be pushed to.
           type: string
         iaasAuthEnabled:
-          description: Enable the use of IAAS based authentication for imgpkg
+          description: Enable the use of IAAS based authentication for imgpkg.
           example: false
           type: boolean
-        packageName:
-          description: The name of the carvel package
-          example: mypackage.acme.com
+        packageDomain:
+          default: default.tap
+          description: The domain of the carvel package. Combines with spec.carvel.packageName
+            to create the Package refName.
+          example: example.com
           type: string
-        secretName:
-          description: Secret that provides customized values to the package installation's
-            templating steps
-          example: mypackage-values-secret
+        packageName:
+          default: $(workload.metadata.name)
+          description: The name of the carvel package. Combines with spec.carvel.packageDomain
+            to create the Package refName.
+          example: mypackage
           type: string
         serviceAccountName:
           description: Service account that gives kapp-controller privileges to create
-            resources in the namespace
+            resources in the namespace.
           example: sa-workload
+          type: string
+        valuesSecretName:
+          description: Name of the values Secret that provides customized values to
+            the package installation's templating steps.
+          example: mypackage-values-secret
           type: string
       required:
       - packageName
+      - packageDomain
       type: object
   - path: spec.gitOps
     schema:
@@ -70,7 +79,8 @@ spec:
           example: https://github.com/my-org/my-gitops-repo
           type: string
       type: object
-  description: Generates a carvel package from a config bundle
+  description: |
+    Generates a carvel package from OCI images containing raw YAML files and YTT files.
   inputs:
   - name: oci-yaml-files
     type: oci-yaml-files
@@ -94,9 +104,9 @@ spec:
     - name: imgpkg-ca-cert-data
       value: $(workload.spec.carvel.caCertData)
     - name: carvel-package-name
-      value: $(workload.spec.carvel.packageName)
-    - name: carvel-package-secret
-      value: $(workload.spec.carvel.secretName)
+      value: $(workload.spec.carvel.packageName).$(workload.spec.carvel.packageDomain)
+    - name: carvel-package-values-secret-name
+      value: $(workload.spec.carvel.valuesSecretName)
     - name: carvel-package-service-account
       value: $(workload.spec.carvel.serviceAccountName)
     - name: gitops-url

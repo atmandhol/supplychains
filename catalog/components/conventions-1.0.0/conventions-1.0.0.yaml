@@ -13,9 +13,45 @@ spec:
             type: string
           value:
             type: string
+          valueFrom:
+            properties:
+              configMapKeyRef:
+                properties:
+                  key:
+                    type: string
+                  name:
+                    type: string
+                  optional:
+                    type: boolean
+                type: object
+              fieldRef:
+                properties:
+                  apiVersion:
+                    type: string
+                  fieldPath:
+                    type: string
+                type: object
+              resourceFieldRef:
+                properties:
+                  containerName:
+                    type: string
+                  divisor:
+                    type: string
+                  resource:
+                    type: string
+                type: object
+              secretKeyRef:
+                properties:
+                  key:
+                    type: string
+                  name:
+                    type: string
+                  optional:
+                    type: boolean
+                type: object
+            type: object
         required:
         - name
-        - value
         type: object
       type: array
   description: Use the Cartographer Conventions service to generate decorated pod

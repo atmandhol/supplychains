@@ -46,6 +46,8 @@ spec:
       - description: the resource to create in the next step
         name: resource
         type: string
+      - name: message
+        type: string
       spec: null
       stepTemplate:
         computeResources: {}
@@ -60,12 +62,19 @@ spec:
             type: RuntimeDefault
       steps:
       - computeResources: {}
-        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:44a6fe08d6d108cbdcd1551963be7a6776524343f502e4a1d7412fcba2aab776
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:3c5103d92c32afebfce921b0a9991ff54025fbea68242916f437c02e701454a4
         name: prepare-resource
         script: |
           #!/usr/bin/env bash
 
           set -euo pipefail
+
+          # Verify that there are no env items with both 'value' and 'valueFrom' keys
+          readonly BAD_ENVS="$(echo '$(params.workload)' | yq '.spec.env[] | select(has("value") and has ("valueFrom")) | .name')"
+          if [[ -n $BAD_ENVS ]]; then
+            echo "ERROR: env item(s) with name(s) '$BAD_ENVS' have both value and valueFrom keys" | tee $(results.message.path)
+            exit 1
+          fi
 
           echo '#@data/values' >> /tmp/values.yaml
           echo '---' >> /tmp/values.yaml
@@ -181,7 +190,7 @@ spec:
             type: RuntimeDefault
       steps:
       - computeResources: {}
-        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:44a6fe08d6d108cbdcd1551963be7a6776524343f502e4a1d7412fcba2aab776
+        image: registry.tanzu.vmware.com/tanzu-application-platform/tap-packages@sha256:3c5103d92c32afebfce921b0a9991ff54025fbea68242916f437c02e701454a4
         name: format-result
         script: "#!/usr/bin/env bash\n\nset -x\nset -euo pipefail\n\ncd `mktemp -d`\ncat
           << EOF > values.yaml\n#@data/values\n\n---\nEOF\n\necho '$(params.json)'

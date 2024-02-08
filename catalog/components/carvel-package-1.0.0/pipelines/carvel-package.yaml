@@ -30,7 +30,7 @@ spec:
     type: string
   - description: Secret that provides customized values to the package installation's
       templating steps
-    name: carvel-package-secret
+    name: carvel-package-values-secret-name
     type: string
   - description: Service account that gives kapp-controller privileges to create resources
       in the namespace
@@ -111,8 +111,8 @@ spec:
       value: $(params.carvel-package-name)
     - name: carvel-package-service-account
       value: $(params.carvel-package-service-account)
-    - name: carvel-package-secret
-      value: $(params.carvel-package-secret)
+    - name: carvel-package-values-secret-name
+      value: $(params.carvel-package-values-secret-name)
     - name: gitops-subpath
       value: $(params.gitops-subpath)
     runAfter:
