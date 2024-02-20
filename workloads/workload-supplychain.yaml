@@ -1,5 +1,5 @@
-apiVersion: tanzu.vmware.com/v1alpha1
-kind: AppBuild
+apiVersion: build.supply-chains.tanzu.vmware.com/v1alpha1
+kind: ServerAppV1
 metadata:
   name: spring-petclinic
 spec:

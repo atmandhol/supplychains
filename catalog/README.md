@@ -4,16 +4,11 @@ This repo contains manifests for supplychains, components, rbac and required tek
 
 ### Package details:
 ```
-group: supplychain.tanzu
-description: All my supplychains for my TAP clusters
+group: build.supply-chains.tanzu.vmware.com
+description: 
 ```
 
 ## Install the Supply Chains on the cluster
 ```
 make install
-```
-
-## Package up the Supplychains
-```
-PACKAGE_REPO={YOUR-REGISTRY-URL} make package
 ```

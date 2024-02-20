@@ -1,0 +1,30 @@
+apiVersion: supply-chain.apps.tanzu.vmware.com/v1alpha1
+kind: SupplyChain
+metadata:
+    name: serverappv1
+spec:
+    defines:
+        group: build.supply-chains.tanzu.vmware.com
+        kind: ServerAppV1
+        plural: serverappv1s
+        version: v1alpha1
+    description: Source to Carvel Package using buildpacks for building images
+    stages:
+        - componentRef:
+            name: source-git-provider-1.0.0
+          name: source-git-provider
+        - componentRef:
+            name: buildpack-build-1.0.0
+          name: buildpack-build
+        - componentRef:
+            name: conventions-1.0.0
+          name: conventions
+        - componentRef:
+            name: app-config-server-1.0.0
+          name: app-config-server
+        - componentRef:
+            name: carvel-package-1.0.0
+          name: carvel-package
+        - componentRef:
+            name: git-writer-pr-1.0.0
+          name: git-writer-pr
